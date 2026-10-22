@@ -1,0 +1,5 @@
+Comprobado: 22/10/2026, 8:09:32
+Escritura de prueba: HTTP 200 OK
+Lectura: HTTP 200
+Colecciones: _ping
+Dispositivos con avisos: 0
