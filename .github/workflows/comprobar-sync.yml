@@ -1,0 +1,41 @@
+name: Comprobar sincronización
+on:
+  push:
+    paths: [".github/workflows/comprobar-sync.yml", ".github/sync-check"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Leer Firebase
+        run: |
+          cat > c.js <<'JS'
+          const B="https://curva-olvido-f89d1-default-rtdb.europe-west1.firebasedatabase.app/mazosOposicion";
+          const fmt=t=>t>1e12?new Date(t).toLocaleString("es-ES",{timeZone:"Europe/Madrid"}):String(t);
+          (async()=>{const out=[];out.push("Comprobado: "+fmt(Date.now()));
+            const w=await fetch(B+"/_ping.json",{method:"PUT",body:JSON.stringify(Date.now())});out.push("Escritura de prueba: HTTP "+w.status+" "+(w.ok?"OK":await w.text()));
+            const r=await fetch(B+".json");out.push("Lectura: HTTP "+r.status);
+            if(!r.ok){out.push(await r.text());}else{const d=await r.json()||{};
+              out.push("Colecciones: "+Object.keys(d).join(", "));
+              for(const col of ["config","srs","revlog","custom","refuerzo","resumen"]){const c=d[col]||{};
+                for(const id of Object.keys(c).sort()){const x=c[id];let info="";try{const v=JSON.parse(x.json);
+                  if(col==="srs")info=Object.keys(v.cards||{}).length+" preguntas vistas";
+                  else if(col==="revlog")info=(v.entries||[]).length+" respuestas, última "+fmt(Math.max(0,...(v.entries||[]).map(e=>e.t)));
+                  else if(col==="resumen")info="generado "+fmt(v.generado)+", hoy "+v.respondidasHoy+" respondidas";
+                  else info=JSON.stringify(v).length+" bytes"}catch(e){info="sin datos"}
+                  out.push(`${col}/${id} · modificado ${fmt(x._ts)} · ${info}`)}}
+              out.push("Dispositivos con avisos: "+Object.keys(d.push||{}).length)}
+            require("fs").writeFileSync("estado-sync.txt",out.join("\n")+"\n");console.log(out.join("\n"))})();
+          JS
+          node c.js
+      - name: Guardar resultado en la rama diagnostico
+        run: |
+          git init -q r && cd r && cp ../estado-sync.txt . && git checkout -q -b diagnostico
+          git -c user.name=github-actions -c user.email=actions@github.com add estado-sync.txt
+          git -c user.name=github-actions -c user.email=actions@github.com commit -q -m "Estado de la sincronización"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" diagnostico
