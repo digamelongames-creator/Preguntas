@@ -413,8 +413,13 @@ function isImpNum(n){return TOP.has(n)?2:IMP.has(n)?1:0}
 /* ---------- persistencia: IndexedDB en el dispositivo + sincronización opcional con Firebase ---------- */
 const LKEY="mazosOposicion.v2",SKEY="mazosOposicion.ajustes";
 const DOCTS={};                                      // ruta -> última modificación
-let SYNC={url:"",key:"",model:"claude-sonnet-5-5"};
+let SYNC={url:"https://curva-olvido-f89d1-default-rtdb.europe-west1.firebasedatabase.app",key:"",model:"claude-sonnet-5-5",hours:[7,13,19]};
+const DEFAULT_FB=SYNC.url;
 try{SYNC=Object.assign(SYNC,JSON.parse(localStorage.getItem(SKEY)||"{}"))}catch(e){}
+if(!SYNC.url&&!SYNC.syncOff)SYNC.url=DEFAULT_FB;
+if(!Array.isArray(SYNC.hours)||!SYNC.hours.length)SYNC.hours=[7,13,19];
+let lastSyncErr="";
+async function fbErr(r){let t="";try{t=(await r.json()).error||""}catch(e){}return"HTTP "+r.status+(t?" · "+t:"")}
 const saveSyncCfg=()=>{try{localStorage.setItem(SKEY,JSON.stringify(SYNC))}catch(e){}};
 function setSync(t){$("#sync").textContent=t}
 let idb=null;
@@ -432,40 +437,68 @@ async function loadLocal(){idb=await idbOpen();let s=await idbGet("state");if(!s
 function allPaths(){const p=["config/main"];Object.keys(ST).forEach(i=>p.push("srs/"+i));Object.keys(LOG).forEach(i=>p.push("revlog/"+i));Object.keys(CUSTOM).forEach(i=>p.push("custom/"+i));Object.keys(REF).forEach(i=>p.push("refuerzo/"+i));return p}
 function docData(path){const i=path.indexOf("/"),col=path.slice(0,i),id=path.slice(i+1);
   if(col==="config")return CFG;if(col==="srs")return{cards:ST[id]||{}};if(col==="revlog")return{date:id,entries:LOG[id]||[]};
-  if(col==="custom")return CUSTOM[id]||{cards:{},edits:{},hidden:[]};return REF[id]||{items:{}}}
+  if(col==="custom")return CUSTOM[id]||{cards:{},edits:{},hidden:[]};if(col==="resumen")return buildResumen();return REF[id]||{items:{}}}
 function setDoc(path,v){const i=path.indexOf("/"),col=path.slice(0,i),id=path.slice(i+1);
   if(col==="config")CFG=Object.assign({newPerDay:10,decks:{},customDecks:{}},v);else if(col==="srs")ST[id]=v.cards||{};
   else if(col==="revlog")LOG[id]=v.entries||[];else if(col==="custom")CUSTOM[id]=v;else if(col==="refuerzo")REF[id]=v}
 const pending=new Set();let pushT=null;
-function touch(path){DOCTS[path]=now();pending.add(path);saveLocalSoon();if(SYNC.url){clearTimeout(pushT);pushT=setTimeout(pushRemote,2000)}}
+function touch(path){DOCTS[path]=now();pending.add(path);DOCTS["resumen/main"]=now();pending.add("resumen/main");saveLocalSoon();if(SYNC.url){clearTimeout(pushT);pushT=setTimeout(pushRemote,2000)}}
 const saveSrs=did=>touch("srs/"+did),saveLog=ds=>touch("revlog/"+ds),saveCfg=()=>touch("config/main"),saveCustom=did=>touch("custom/"+did),saveRef=did=>touch("refuerzo/"+did);
 const fbBase=()=>SYNC.url.trim().replace(/\/+$/,"")+"/mazosOposicion";
 let pushing=false;
 async function pushRemote(){if(!SYNC.url||!pending.size||pushing)return;if(!navigator.onLine){setSync("sin conexión");return}
   pushing=true;const paths=[...pending];pending.clear();setSync("sincronizando…");
   const body={};paths.forEach(p=>{body[p]={_ts:DOCTS[p]||now(),json:JSON.stringify(docData(p))}});
-  try{const r=await fetch(fbBase()+".json",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify(body)});if(!r.ok)throw new Error("HTTP "+r.status);setSync("")}
-  catch(e){paths.forEach(p=>pending.add(p));setSync("sin sincronizar")}
+  try{const r=await fetch(fbBase()+".json",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify(body)});if(!r.ok)throw new Error(await fbErr(r));setSync("");lastSyncErr=""}
+  catch(e){paths.forEach(p=>pending.add(p));setSync("sin sincronizar");lastSyncErr=e.message}
   finally{pushing=false}}
 async function pullRemote(){if(!SYNC.url)return false;if(!navigator.onLine){setSync("sin conexión");return false}
   setSync("sincronizando…");
-  try{const r=await fetch(fbBase()+".json");if(!r.ok)throw new Error("HTTP "+r.status);const data=await r.json()||{};let changed=false;const seen=new Set();
+  try{const r=await fetch(fbBase()+".json");if(!r.ok)throw new Error(await fbErr(r));lastSyncErr="";const data=await r.json()||{};let changed=false;const seen=new Set();
     for(const col of Object.keys(data))for(const id of Object.keys(data[col]||{})){const p=col+"/"+id,rem=data[col][id];seen.add(p);if(!rem||typeof rem.json!=="string")continue;
       let v;try{v=JSON.parse(rem.json)}catch(e){continue}const rts=rem._ts||0,lts=DOCTS[p]||0;
       if(col==="revlog"){const loc=LOG[id]||[],key=x=>x.c+"|"+x.t,have=new Set(loc.map(key)),remK=new Set((v.entries||[]).map(key));
         const extra=(v.entries||[]).filter(x=>!have.has(key(x)));if(extra.length){LOG[id]=loc.concat(extra).sort((a,b)=>a.t-b.t);changed=true}
         if(loc.some(x=>!remK.has(key(x))))pending.add(p);DOCTS[p]=Math.max(rts,lts);continue}
+      if(col==="resumen")continue;
       if(rts>lts){setDoc(p,v);DOCTS[p]=rts;changed=true}else if(rts<lts)pending.add(p)}
     allPaths().forEach(p=>{if(!seen.has(p))pending.add(p)});
     if(changed){buildIndex();await saveLocalNow()}
     setSync("");if(pending.size)pushRemote();return changed}
-  catch(e){setSync("sin sincronizar");return false}}
+  catch(e){setSync("sin sincronizar");lastSyncErr=e.message;return false}}
 document.addEventListener("visibilitychange",async()=>{
   if(document.hidden){saveLocalNow();pushRemote()}
   else if(view!=="review"){const ch=await pullRemote();if(ch||view==="decks")go(view)}});
 window.addEventListener("online",()=>{if(SYNC.url)pullRemote()});
 function downloadFile(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:type||"application/json"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 
+/* ---------- resumen para los avisos (lo lee el servidor de GitHub) ---------- */
+function buildResumen(){const t=dayNum(now()),days={};const ds=deckList();const base={};
+  ds.forEach(d=>{const k=counts(d.id),c=dcfg(d.id),lim=c.paused?0:(c.newPerDay??CFG.newPerDay);base[d.id]={k,lim,left:Math.max(0,k.newLeft-k.n)}});
+  for(let o=0;o<7;o++){const day=t+o,eod=dayTs(day+1),rows=[];
+    ds.forEach(d=>{const b=base[d.id],st=ST[d.id]||{};let n,r;
+      if(o===0){n=b.k.n;r=b.k.l+b.k.r}
+      else{n=Math.min(b.lim,Math.max(0,b.left-b.lim*(o-1)));r=0;for(const cid of DCARDS[d.id]||[]){const s=st[cid];if(!s)continue;if(s.ty==="review"?s.due<=day:(isLearnT(s.ty)&&s.due<eod))r++}}
+      if(n+r>0)rows.push([(d.num!=null?"T"+d.num+" ":"")+d.name,n,r])});
+    rows.sort((a,b)=>(b[1]+b[2])-(a[1]+a[2]));days[dayStr(day)]=rows}
+  const L=LOG[dayStr(t)]||[];return{generado:now(),hoy:dayStr(t),respondidasHoy:L.length,aciertosHoy:L.filter(x=>x.e>1).length,dias:days}}
+
+/* ---------- avisos push ---------- */
+const VAPID_PUBLIC="BHAtZqRCT_ODxcQvuAUfTjQn8Q83Kf6FSUrMAo2liOSDssT6qNbG3baZY_o3PRWN5iODwL7YpfpnVAl3Z9RQQqo";
+const b64u=s=>{const p="=".repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(b,c=>c.charCodeAt(0))};
+const hashId=s=>{let h=5381;for(let i=0;i<s.length;i++)h=(h*33^s.charCodeAt(i))>>>0;return"d"+h.toString(36)};
+const pushSupported=()=>"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
+async function currentSub(){if(!pushSupported())return null;const reg=await navigator.serviceWorker.ready;return reg.pushManager.getSubscription()}
+async function savePushDoc(sub){const id=hashId(sub.endpoint);
+  const r=await fetch(fbBase()+"/push/"+id+".json",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({sub:JSON.stringify(sub),hours:SYNC.hours,tz:"Europe/Madrid",actualizado:now()})});
+  if(!r.ok)throw new Error("Firebase no deja guardar los avisos ("+(await fbErr(r))+")")}
+async function enablePush(){if(!pushSupported())throw new Error("Este navegador no admite avisos; instala la app desde Chrome");
+  if(!SYNC.url)throw new Error("Configura antes la sincronización con Firebase");
+  const perm=await Notification.requestPermission();if(perm!=="granted")throw new Error("No has dado permiso para mostrar avisos");
+  const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID_PUBLIC)});
+  await savePushDoc(sub);touch("resumen/main");await pushRemote();return sub}
+async function disablePush(){const sub=await currentSub();if(!sub)return;try{await fetch(fbBase()+"/push/"+hashId(sub.endpoint)+".json",{method:"DELETE"})}catch(e){}await sub.unsubscribe()}
 /* ---------- planificador (SM-2 al estilo Anki) ---------- */
 const LS=[1,10],RLS=[10],AHEAD=20*60e3;
 const maxIvl=did=>dcfg(did).weak?7:36500;
@@ -907,9 +940,14 @@ function renderSettings(){
    '<p class="note">El progreso se guarda en este dispositivo automáticamente. Para tenerlo también en otro móvil u ordenador, pega la URL de tu Realtime Database de Firebase.</p>'+
    '<div class="field"><label for="fbUrl">URL de Firebase Realtime Database (opcional)</label><input id="fbUrl" type="url" placeholder="https://tu-proyecto-default-rtdb.europe-west1.firebasedatabase.app" value="'+esc(SYNC.url)+'"></div>'+
    '<div class="rowbtns"><button class="tbtn" id="fbTest">Probar y sincronizar</button><button class="fbtn" id="fbSave">Guardar</button></div>'+
-   '<p class="note" id="fbMsg"></p>'+
+   '<p class="note" id="fbMsg">'+(lastSyncErr?"Último error de sincronización: "+esc(lastSyncErr):"")+'</p>'+
    '<div class="rowbtns"><button class="tbtn" id="exp">Exportar copia</button><button class="tbtn" id="imp">Importar copia</button></div>'+
    '<input type="file" id="impFile" accept=".json,application/json" hidden>'+
+   '<div class="sec-t">Avisos</div>'+
+   '<p class="note">Te llega una notificación con las preguntas pendientes de cada tema, aunque la app esté cerrada. Necesita la sincronización con Firebase activada.</p>'+
+   '<div class="field"><label for="pushHours">Horas de aviso (separadas por comas)</label><input id="pushHours" inputmode="numeric" value="'+esc((SYNC.hours||[]).join(", "))+'"></div>'+
+   '<div class="rowbtns"><button class="tbtn" id="pushOff" hidden>Desactivar en este móvil</button><button class="fbtn" id="pushOn">Activar avisos</button></div>'+
+   '<p class="note" id="pushMsg"></p>'+
    '<div class="sec-t">Refuerzos de Claude</div>'+
    '<p class="note">Para que Claude prepare refuerzos de las preguntas que fallas 3 o más veces, pega una clave de la API de Anthropic (console.anthropic.com). Se guarda solo en este dispositivo y se usa únicamente para hablar con Claude.</p>'+
    '<div class="field"><label for="apiKey">Clave de la API</label><input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…" value="'+esc(SYNC.key)+'"></div>'+
@@ -920,17 +958,24 @@ function renderSettings(){
    '<div class="rowbtns"><button class="tbtn danger" id="wipe">Reiniciar todo el progreso</button></div>';
   $("#saveDef").onclick=()=>{CFG.newPerDay=Math.max(0,parseInt($("#defNew").value)||0);saveCfg();toast("Guardado")};
   $("#applyAll").onclick=()=>{CFG.newPerDay=Math.max(0,parseInt($("#defNew").value)||0);Object.keys(DECKS).forEach(id=>{dcfg(id).newPerDay=CFG.newPerDay});saveCfg();toast("Aplicado a todos los temas")};
-  const saveUrl=()=>{const u=$("#fbUrl").value.trim();if(u&&!/^https:\/\/[^/]+\.(firebaseio\.com|firebasedatabase\.app)\/?$/.test(u)){$("#fbMsg").textContent="La URL debe ser la de la base de datos, del estilo https://algo.firebasedatabase.app (no la de la consola).";return false}SYNC.url=u;saveSyncCfg();return true};
+  const saveUrl=()=>{const u=$("#fbUrl").value.trim();if(u&&!/^https:\/\/[^/]+\.(firebaseio\.com|firebasedatabase\.app)\/?$/.test(u)){$("#fbMsg").textContent="La URL debe ser la de la base de datos, del estilo https://algo.firebasedatabase.app (no la de la consola).";return false}SYNC.url=u;SYNC.syncOff=!u;saveSyncCfg();return true};
   $("#fbSave").onclick=()=>{if(saveUrl()){$("#fbMsg").textContent=SYNC.url?"Guardado. Se sincroniza al abrir la app y al salir de ella.":"Sincronización desactivada.";if(SYNC.url)pullRemote()}};
   $("#fbTest").onclick=async()=>{if(!saveUrl()||!SYNC.url)return;$("#fbMsg").textContent="Probando…";
-    try{const r=await fetch(fbBase()+"/_ping.json",{method:"PUT",body:JSON.stringify(now())});if(!r.ok)throw new Error(r.status);
+    try{const r=await fetch(fbBase()+"/_ping.json",{method:"PUT",body:JSON.stringify(now())});if(!r.ok)throw new Error(await fbErr(r));
       allPaths().forEach(p=>{if(!DOCTS[p])DOCTS[p]=1});await pullRemote();await pushRemote();$("#fbMsg").textContent="Conectado: progreso sincronizado con Firebase."}
-    catch(e){$("#fbMsg").textContent="No se pudo conectar ("+e.message+"). Revisa la URL y que las reglas de la base de datos permitan leer y escribir."}};
+    catch(e){$("#fbMsg").textContent="No se pudo conectar ("+e.message+"). "+(/permission|401|403/i.test(e.message)?"Las reglas de tu Firebase no permiten escribir en mazosOposicion: revisa Realtime Database → Reglas.":"Revisa la URL y la conexión.")}};
   $("#exp").onclick=()=>downloadFile("mazos-oposicion-"+dayStr(dayNum(now()))+".json",JSON.stringify(snapshot()));
   $("#imp").onclick=()=>{$("#impFile").value="";$("#impFile").click()};
   $("#impFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{let d;try{d=JSON.parse(rd.result)}catch(err){toast("El archivo no es una copia válida");return}
     if(!d||!d.CFG||!d.ST){toast("El archivo no es una copia válida");return}
     confirmBox("¿Sustituir el progreso de este dispositivo por el de la copia?","Importar",()=>{applyState(d);allPaths().forEach(p=>{DOCTS[p]=now();pending.add(p)});buildIndex();saveLocalNow();pushRemote();go("decks");toast("Copia importada")})};rd.readAsText(f)};
+  const readHours=()=>[...new Set(($("#pushHours").value.match(/\d{1,2}/g)||[]).map(Number).filter(h=>h>=0&&h<=23))].sort((x,y)=>x-y);
+  currentSub().then(s=>{if(s){$("#pushOn").textContent="Guardar horas";$("#pushOff").hidden=false;$("#pushMsg").textContent="Avisos activados en este dispositivo."}}).catch(()=>{});
+  $("#pushOn").onclick=async()=>{const h=readHours();if(!h.length){$("#pushMsg").textContent="Escribe al menos una hora, por ejemplo 7, 13, 19";return}
+    SYNC.hours=h;saveSyncCfg();$("#pushMsg").textContent="Activando…";
+    try{await enablePush();$("#pushOn").textContent="Guardar horas";$("#pushOff").hidden=false;$("#pushMsg").textContent="Listo: recibirás avisos a las "+h.map(x=>x+":00").join(", ")+" (pueden llegar con unos minutos de retraso)."}
+    catch(e){$("#pushMsg").textContent=e.message}};
+  $("#pushOff").onclick=async()=>{await disablePush();$("#pushOff").hidden=true;$("#pushOn").textContent="Activar avisos";$("#pushMsg").textContent="Avisos desactivados en este dispositivo."};
   $("#keySave").onclick=()=>{SYNC.key=$("#apiKey").value.trim();SYNC.model=$("#apiModel").value.trim()||"claude-sonnet-5-5";saveSyncCfg();refOff=false;toast(SYNC.key?"Clave guardada":"Refuerzos desactivados")};
   $("#wipe").onclick=()=>confirmBox("¿Borrar todo el historial y empezar de cero? Las preguntas se mantienen.","Reiniciar",()=>{
     Object.keys(ST).forEach(did=>{ST[did]={};saveSrs(did)});Object.keys(LOG).forEach(ds=>{LOG[ds]=[];saveLog(ds)});go("decks");toast("Progreso reiniciado")})}
@@ -941,7 +986,7 @@ async function start(){
   if(!had){try{const seed=JSON.parse(document.getElementById("seed").textContent);applyState(seed);allPaths().forEach(p=>{DOCTS[p]=DOCTS[p]||1})}catch(e){WEAK0.forEach(n=>{dcfg("t"+n).weak=true})}await saveLocalNow()}
   buildIndex();go("decks");
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
-  if(SYNC.url){if(await pullRemote())go(view)}}
+  if(SYNC.url){if(await pullRemote())go(view);touch("resumen/main")}}
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 $("#fsBtn").onclick=()=>{closeDrawer();const d=document;if(d.fullscreenElement)d.exitFullscreen&&d.exitFullscreen();else d.documentElement.requestFullscreen&&d.documentElement.requestFullscreen().catch(()=>toast("Instala la app para verla a pantalla completa"))};
 start();
