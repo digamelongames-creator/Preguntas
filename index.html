@@ -179,6 +179,14 @@ main{max-width:760px;margin:0 auto;padding-bottom:110px}
 .navbtn:disabled{opacity:.35;cursor:default}
 .chip.past{color:var(--rv-muted);background:var(--rv-bg);border:1px solid var(--rv-border)}
 .refuerzo{border:1px solid var(--rv-border);border-left:4px solid var(--imp);background:var(--imp-bg);border-radius:10px;padding:12px 14px;font-size:.96rem;line-height:1.55;overflow-wrap:anywhere}
+.vstat{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.9rem;color:var(--rv-muted);min-height:24px}
+.vdot{width:12px;height:12px;border-radius:50%;background:var(--rv-border);flex:none}
+.vstat.listen .vdot{background:var(--ko);animation:vpulse 1s infinite}
+.vstat.listen{color:var(--ko);font-weight:600}
+.vstat.speak .vdot{background:var(--rv-accent)}
+.vheard{font-family:var(--f-rvm);color:var(--rv-text);font-size:.85rem}
+@keyframes vpulse{50%{transform:scale(1.4);opacity:.6}}
+.vhelp{font-size:.82rem;color:var(--rv-muted);line-height:1.5}
 .ref-title{display:block;font-size:.73rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--imp);margin-bottom:4px}
 .ref-status{font-size:.82rem;color:var(--imp);margin:0;min-height:1em}
 .ref-ov{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;color:var(--imp);max-width:420px}
@@ -327,6 +335,7 @@ table.plan{width:100%;border-collapse:collapse;font-size:13.5px}
   </section>
   <section id="vOverview" hidden></section>
   <section id="vReview" hidden></section>
+  <section id="vVoice" hidden></section>
   <section id="vStats" hidden><div class="stbar pad" id="periods"></div><div id="statsBody"></div></section>
   <section id="vSettings" hidden><div class="form pad" id="settingsBody"></div></section>
 </main>
@@ -338,6 +347,7 @@ table.plan{width:100%;border-collapse:collapse;font-size:13.5px}
 <nav class="drawer" id="drawer" aria-label="Navegación">
   <div class="drhead"><b>Mazos Oposición</b><span>Policía Nacional · repaso espaciado</span></div>
   <button class="dritem" data-go="decks"><svg viewBox="0 0 24 24"><path d="M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 14H8V4h12z"/></svg>Mazos</button>
+  <button class="dritem" id="voiceDr"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11z"/></svg>Estudiar por voz</button>
   <button class="dritem" data-go="stats"><svg viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/></svg>Estadísticas</button>
   <button class="dritem" data-go="settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58-1.92-3.32-2.39.96a7.03 7.03 0 0 0-1.63-.94L14.87 3.5h-3.84l-.36 2.68c-.59.24-1.13.56-1.63.94l-2.39-.96-1.92 3.32 2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58 1.92 3.32 2.39-.96c.5.38 1.04.7 1.63.94l.36 2.68h3.84l.36-2.68c.59-.24 1.13-.56 1.63-.94l2.39.96 1.92-3.32zM12.95 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>Ajustes</button>
   <button class="dritem" id="fsBtn"><svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z"/></svg>Pantalla completa</button>
@@ -563,22 +573,23 @@ function commit(cid,ease,ms,o){const c=CARDS[cid],did=c.did,n=now(),st=ST[did]||
 let view="decks",curDeck=null,statDeck="all",period=30;
 const ICON_MENU='<path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/>',ICON_BACK='<path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/>';
 function go(v,opts){view=v;if(opts&&opts.deck)curDeck=opts.deck;
-  ["vDecks","vOverview","vReview","vStats","vSettings"].forEach(id=>$("#"+id).hidden=true);
-  const sub=v==="overview"||v==="review";document.body.classList.toggle("reviewing",v==="review");
+  ["vDecks","vOverview","vReview","vStats","vSettings","vVoice"].forEach(id=>$("#"+id).hidden=true);
+  const sub=v==="overview"||v==="review"||v==="voice";document.body.classList.toggle("reviewing",v==="review");
   $("#navIcon").innerHTML=sub?ICON_BACK:ICON_MENU;$("#navBtn").setAttribute("aria-label",sub?"Volver":"Menú");
   $("#fab").hidden=v!=="decks";$("#barCounts").hidden=v!=="review";$("#undoBtn").hidden=v!=="review"||!undo;$("#editBtn").hidden=v!=="review";$("#statDeck").hidden=v!=="stats";
   document.querySelectorAll(".dritem").forEach(b=>b.classList.toggle("on",b.dataset.go===v));
   if(v==="decks"){$("#title").textContent="Mazos";$("#vDecks").hidden=false;renderDecks()}
   if(v==="overview"){$("#title").textContent=DECKS[curDeck]?.name||"Mazo";$("#vOverview").hidden=false;renderOverview()}
   if(v==="review"){$("#title").textContent=DECKS[curDeck]?.name||"";$("#vReview").hidden=false;sess={alt:0,last:null,done:0,ok:0,bad:0,start:now(),hist:[]};undo=null;showNext()}
+  if(v==="voice"){$("#title").textContent="Estudiar por voz";$("#vVoice").hidden=false;renderVoice()}
   if(v==="stats"){$("#title").textContent="Estadísticas";$("#vStats").hidden=false;renderStats()}
   if(v==="settings"){$("#title").textContent="Ajustes";$("#vSettings").hidden=false;renderSettings()}
   closeDrawer();window.scrollTo(0,0)}
-$("#navBtn").onclick=()=>{if(view==="review"){const d=curDeck;go("overview");if(sess.done)maybeRefuerzo(d)}else if(view==="overview")go("decks");else openDrawer()};
+$("#navBtn").onclick=()=>{if(view==="voice"){voiceExit();return}if(view==="review"){const d=curDeck;go("overview");if(sess.done)maybeRefuerzo(d)}else if(view==="overview")go("decks");else openDrawer()};
 function openDrawer(){$("#scrim").hidden=false;requestAnimationFrame(()=>$("#drawer").classList.add("open"))}
 function closeDrawer(){$("#drawer").classList.remove("open");if(!$("#sheetHost").innerHTML)$("#scrim").hidden=true}
 $("#scrim").onclick=()=>{closeSheet();closeDrawer()};
-document.querySelectorAll(".dritem").forEach(b=>b.onclick=()=>go(b.dataset.go));
+document.querySelectorAll(".dritem[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));$("#voiceDr").onclick=()=>{closeDrawer();voiceStart(null)};
 
 function sheet(html){$("#sheetHost").innerHTML='<div class="sheet" role="dialog">'+html+'</div>';$("#scrim").hidden=false;return $("#sheetHost .sheet")}
 function closeSheet(){$("#sheetHost").innerHTML="";if(!$("#drawer").classList.contains("open"))$("#scrim").hidden=true}
@@ -702,9 +713,9 @@ function renderOverview(){const d=DECKS[curDeck];if(!d){go("decks");return}const
    '<div class="ovmeta">'+k.total+' preguntas · '+seen+' vistas · '+(c.paused?"en pausa":(c.newPerDay??CFG.newPerDay)+" nuevas al día")+(c.weak?" · tema flojo":"")+'<br>Último estudio: '+(ls?relDay(dayNum(ls)):"nunca")+' · Próximo: '+(nx===null?"—":relDay(nx))+'</div>'+
    '<button class="bigbtn" id="studyBtn"'+(sum?"":" disabled")+'>'+(sum?"Estudiar":"Al día")+'</button>'+
    (refStatusText(d.id)?'<div class="ref-ov"><span>'+esc(refStatusText(d.id))+'</span>'+(refPending(d.id).length&&hasAI()&&!refOff&&!refBusy?'<button class="chipbtn" id="refNow">Preparar ahora</button>':'')+'</div>':'')+
-   '<div class="linkrow"><button class="chipbtn" data-a="add">Añadir pregunta</button><button class="chipbtn" data-a="stat">Estadísticas</button><button class="chipbtn" data-a="opt">Opciones</button></div></div>';
+   '<div class="linkrow"><button class="chipbtn" data-a="voice">🎙 Estudiar por voz</button><button class="chipbtn" data-a="add">Añadir pregunta</button><button class="chipbtn" data-a="stat">Estadísticas</button><button class="chipbtn" data-a="opt">Opciones</button></div></div>';
   $("#studyBtn").onclick=()=>go("review");if($("#refNow"))$("#refNow").onclick=()=>runRefuerzo(d.id);
-  $("#vOverview").querySelector('[data-a="add"]').onclick=()=>cardForm(d.id);
+  $("#vOverview").querySelector('[data-a="add"]').onclick=()=>cardForm(d.id);$("#vOverview").querySelector('[data-a="voice"]').onclick=()=>voiceStart(d.id);
   $("#vOverview").querySelector('[data-a="stat"]').onclick=()=>{statDeck=d.id;go("stats")};
   $("#vOverview").querySelector('[data-a="opt"]').onclick=()=>deckOptions(d.id)}
 
@@ -839,6 +850,105 @@ async function runRefuerzo(did){const ids=refPending(did).slice(0,6);if(!ids.len
   }catch(e){const st=e&&e.status;if(st===401||st===403){refOff=true;toast("La clave de Claude no es válida; revísala en Ajustes")}else if(st===429||st===529||st===503){toast("Claude está ocupado; los refuerzos se prepararán en la próxima sesión")}else toast("No se pudieron preparar los refuerzos; se intentará en la próxima sesión")}
   finally{refBusy=null;refreshRefUI()}}
 
+/* ---------- estudiar por voz ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const voiceOK=()=>!!(SR&&window.speechSynthesis);
+let V=null;   // estado del modo voz
+const NUMW={uno:1,una:1,primero:1,primera:1,dos:2,segundo:2,segunda:2,tres:3,tercero:3,tercera:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,veinte:20,
+  veintiuno:21,veintiuna:21,veintidos:22,veintitres:23,veinticuatro:24,veinticinco:25,veintiseis:26,veintisiete:27,veintiocho:28,veintinueve:29,treinta:30,cuarenta:40};
+function wordsToNum(s){const t=normTxt(s).replace(/[^a-z0-9ñ ]/g," ").split(/\s+/).filter(Boolean);
+  for(let i=0;i<t.length;i++){if(/^\d+$/.test(t[i]))return+t[i];
+    if(NUMW[t[i]]!=null){let n=NUMW[t[i]];if((n===30||n===40)&&t[i+1]==="y"&&NUMW[t[i+2]]!=null&&NUMW[t[i+2]]<10)n+=NUMW[t[i+2]];return n}}return null}
+const OPTW=[["a","uno","una","1","primera","primero","alfa","alpha","alpa"],["b","be","ve","uve","dos","2","segunda","segundo","bravo"],["c","ce","se","sé","tres","3","tercera","tercero","ultima","charlie","charly","charli","chali"]];
+function parseOption(s){const n=normTxt(s).replace(/[^a-z0-9ñ ]/g," ").trim(),t=n.split(/\s+/).filter(Boolean);if(!t.length)return null;
+  const hits=new Set();t.forEach(w=>OPTW.forEach((l,i)=>{if(l.includes(w))hits.add(i)}));
+  if(hits.size===1){const i=[...hits][0];if(i===0&&t.length>4&&!t.some(w=>w!=="a"&&OPTW[0].includes(w)))return null;return i}
+  if(hits.size>1){for(let k=t.length-1;k>=0;k--){for(let i=0;i<3;i++)if(OPTW[i].includes(t[k])&&t[k]!=="a"&&t[k]!=="se")return i}}return null}
+function parseCmd(s){const n=normTxt(s);
+  if(/\b(para|pausa|detente|stop|espera)\b/.test(n))return"pause";if(/\b(salir|sal|terminar|termina|acabar)\b/.test(n))return"exit";
+  if(/\b(cambia|cambiar|otro tema|cambio de tema)\b/.test(n))return"change";if(/\b(repite|repetir|otra vez|no te he oido|que)\b/.test(n))return"repeat";
+  if(/\b(salta|saltar|pasa|siguiente)\b/.test(n))return"skip";if(/\b(explicacion|por que)\b/.test(n))return"explain";return null}
+function speakText(s){return String(s||"").replace(/\bart(s)?\.\s*/gi,"artículo$1 ").replace(/\bLO\b/g,"ley orgánica").replace(/\bRD\b/g,"real decreto").replace(/\bCE\b/g,"Constitución")
+  .replace(/\bCP\b/g,"Código Penal").replace(/\bLECrim\b/gi,"Ley de Enjuiciamiento Criminal").replace(/\bSG\b/g,"subdirección general").replace(/\bDG\b/g,"dirección general")
+  .replace(/(\d)\/(\d{4})/g,"$1 de $2").replace(/\bnº\s*/gi,"número ").replace(/«|»|"/g,"")}
+function pickVoice(){const vs=speechSynthesis.getVoices(),es=vs.filter(v=>/^es/i.test(v.lang));return es.find(v=>/es[-_]ES/i.test(v.lang)&&/google|natural|online/i.test(v.name))||es.find(v=>/es[-_]ES/i.test(v.lang))||es[0]||null}
+function say(text){return new Promise(res=>{if(!V||!V.on)return res();speechSynthesis.cancel();const g=V.gen;
+  const parts=speakText(text).split(/(?<=[.!?;])\s+/).filter(Boolean);let i=0;const voice=pickVoice();
+  let tm=null;const nextPart=()=>{clearTimeout(tm);if(!V||!V.on||V.gen!==g||i>=parts.length)return res();const txt=parts[i++].trim();if(!txt)return nextPart();const u=new SpeechSynthesisUtterance(txt);u.lang="es-ES";if(voice)u.voice=voice;u.rate=SYNC.voiceRate||1.05;
+    let fired=false;const fin=()=>{if(fired)return;fired=true;nextPart()};u.onend=fin;u.onerror=fin;tm=setTimeout(fin,3000+txt.length*95/(SYNC.voiceRate||1.05));V.utter=u;speechSynthesis.speak(u)};setVStatus("speak");nextPart()})}
+function listen(){return new Promise(res=>{if(!V||!V.on)return res(null);let got=null,done=false;const r=new SR();V.rec=r;
+  r.lang="es-ES";r.interimResults=false;r.maxAlternatives=5;r.continuous=false;setVStatus("listen");
+  r.onresult=e=>{const alts=[...e.results[0]].map(a=>a.transcript);got=alts};
+  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed"){V.denied=true}};
+  r.onend=()=>{if(done)return;done=true;V.rec=null;res(got)};
+  try{r.start()}catch(e){done=true;res(null)}})}
+function setVStatus(st,heard){if(!V)return;V.status=st;if(heard!=null)V.heard=heard;renderVoice()}
+async function voiceStart(did){if(!voiceOK()){toast("Este navegador no permite estudiar por voz; usa Chrome");return}
+  V={gen:0,on:true,did:did||null,status:"idle",heard:"",cur:null,order:[0,1,2],last:null,done:0,ok:0,phase:"tema",lock:null,msg:""};
+  try{V.lock=await navigator.wakeLock.request("screen")}catch(e){}
+  go("voice");speechSynthesis.getVoices();await new Promise(r=>setTimeout(r,250));
+  if(did&&DECKS[did])voiceDeck(did);else voiceAskTema("¿Qué tema quieres estudiar?")}
+function voiceStop(){if(!V)return;V.on=false;try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();try{V.lock&&V.lock.release()}catch(e){}V=null}
+async function hear(prompt,tries){for(let k=0;k<(tries||3);k++){if(!V||!V.on)return null;const alts=await listen();if(!V||!V.on)return null;
+    if(V.denied){V.msg="Chrome no tiene permiso para usar el micrófono. Actívalo en los permisos del sitio y vuelve a intentarlo.";V.on=false;renderVoice();return null}
+    if(alts&&alts.length){setVStatus("think",alts[0]);return alts}
+    if(k<(tries||3)-1&&prompt)await say(prompt)}
+  return null}
+async function voiceAskTema(q){V.phase="tema";V.cur=null;renderVoice();await say(q);
+  const alts=await hear("Dime el número del tema.",3);if(!alts){if(V&&V.on)voicePause();return}
+  const all=alts.join(" "),cmd=parseCmd(all);if(cmd==="exit"||cmd==="pause"){voicePause();return}
+  let n=null;for(const a of alts){n=wordsToNum(a);if(n!=null)break}
+  let d=n!=null?DECKS["t"+n]:null;
+  if(!d){const na=normTxt(all);d=deckList().find(x=>na.includes(normTxt(x.name)))||deckList().find(x=>toks(x.name).filter(w=>w.length>4).some(w=>na.includes(w)))}
+  if(!d)return voiceAskTema(n!=null?"No tengo el tema "+n+". Dime otro número.":"No te he entendido. ¿Qué tema quieres?");
+  voiceDeck(d.id)}
+async function voiceDeck(did){V.did=did;const d=DECKS[did],k=counts(did),sum=k.n+k.l+k.r;
+  if(!sum){const nx=nextStudy(did);return voiceAskTema("El tema "+(d.num??d.name)+" no tiene preguntas pendientes"+(nx!=null?"; te toca "+relDay(nx):"")+". ¿Qué otro tema quieres?")}
+  V.done=0;V.ok=0;V.last=null;await say("Tema "+(d.num!=null?d.num+", ":"")+d.name+". Tienes "+sum+" preguntas. Responde A, B o C, uno, dos o tres, o alfa, bravo o charlie.");voiceNext()}
+async function voiceNext(){if(!V||!V.on)return;const cid=nextCard(V.did,V.last);
+  if(!cid){const d=DECKS[V.did];return voiceAskTema("Has terminado el tema "+(d.num??d.name)+". "+V.ok+" aciertos de "+V.done+". ¿Quieres otro tema? Di el número o di salir.")}
+  const c=CARDS[cid];if(c.kind!=="test"){V.last=cid;return voiceBasic(cid)}
+  V.cur=cid;V.phase="q";V.order=shuffle3();V.chosen=null;V.heard="";renderVoice();await voiceRead();voiceAnswer()}
+async function voiceRead(){const c=CARDS[V.cur];await say(c.q);for(let p=0;p<3;p++){if(!V||!V.on)return;await say("ABC"[p]+". "+c.opts[V.order[p]])}V.t0=now()}
+async function voiceAnswer(){let miss=0;const g=V.gen;
+  while(V&&V.on&&V.gen===g){const alts=await hear(null,1);if(!V||!V.on||V.gen!==g)return;
+    if(!alts){if(++miss>=3){voicePause();return}await say(miss===1?"¿A, B o C?":"No te oigo. Di A, B o C, o di repite.");continue}
+    const all=alts.join(" | "),cmd=parseCmd(alts[0]);
+    if(cmd==="pause"){voicePause();return}if(cmd==="exit"){voiceExit();return}if(cmd==="change"){V.last=V.cur;return voiceAskTema("¿Qué tema quieres?")}
+    if(cmd==="repeat"){await voiceRead();continue}if(cmd==="skip"){V.last=V.cur;await say("Saltada.");return voiceNext()}
+    let pos=null;for(const a of alts){pos=parseOption(a);if(pos!=null)break}
+    if(pos==null){await say("No te he entendido. Di A, B o C.");continue}
+    return voiceGrade(pos)}}
+async function voiceGrade(pos){const c=CARDS[V.cur],oi=V.order[pos],ok=oi===c.a,ms=now()-(V.t0||now());
+  const g=ok?preGrade(ms):1;V.chosen=oi;V.phase="a";const r=commit(V.cur,g,ms,oi);V.done++;if(ok)V.ok++;V.last=V.cur;renderVoice();
+  const right="ABC"[V.order.indexOf(c.a)];
+  await say(ok?"Correcto.":"Incorrecto. La correcta es la "+right+": "+c.opts[c.a]+".");
+  if(c.exp)await say(c.exp);
+  const rf=REF[c.did]?.items?.[c.id];if(rf)await say("Refuerzo: "+rf.text);
+  await new Promise(r=>setTimeout(r,500));voiceNext()}
+async function voiceBasic(cid){V.cur=cid;V.phase="q";renderVoice();const c=CARDS[cid];await say(c.q+". Di la respuesta en voz alta y luego di ya.");
+  await hear(null,2);V.phase="a";renderVoice();await say("La respuesta es: "+c.ans+". ¿La sabías? Di sí o no.");
+  const alts=await hear("¿Sí o no?",2);const yes=alts&&/\b(si|sí|sabia|bien|correcto)\b/.test(normTxt(alts.join(" ")));
+  commit(cid,yes?3:1,8000,null);V.done++;if(yes)V.ok++;voiceNext()}
+function voicePause(){if(!V)return;V.on=false;V.gen++;try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();V.status="paused";renderVoice()}
+function voiceResume(){if(!V)return;V.on=true;V.gen++;V.msg="";if(V.phase==="q"&&V.cur){renderVoice();(async()=>{await voiceRead();voiceAnswer()})()}else if(V.did&&V.phase!=="tema")voiceNext();else voiceAskTema("¿Qué tema quieres estudiar?")}
+function voiceExit(){const d=V&&V.did;voiceStop();go(d?"overview":"decks",d?{deck:d}:undefined)}
+function renderVoice(){const box=$("#vVoice");if(!box||view!=="voice"||!V)return;const c=V.cur?CARDS[V.cur]:null,d=V.did?DECKS[V.did]:null;
+  const ST={speak:"Hablando…",listen:"Escuchando…",think:"Entendido",idle:"",paused:"En pausa"};
+  let h='<div class="rv pad"><div class="rv-tiles"><div class="rv-tile"><span class="n">'+V.done+'</span><span class="l">respondidas</span></div><div class="rv-tile"><span class="n ok">'+V.ok+'</span><span class="l">aciertos</span></div><div class="rv-tile"><span class="n bad">'+(V.done-V.ok)+'</span><span class="l">fallos</span></div></div>';
+  h+='<div class="vstat '+V.status+'"><span class="vdot"></span><span>'+(V.msg?esc(V.msg):ST[V.status]||"")+'</span>'+(V.heard?'<span class="vheard">«'+esc(V.heard)+'»</span>':'')+'</div>';
+  if(c&&c.kind==="test"){h+='<div class="rv-card"><div class="rv-top"><span class="rv-num">'+(d.num!=null?"Tema "+d.num:esc(d.name))+'</span></div><div class="qtext">'+nl(c.q)+'</div><div class="options'+(V.phase==="a"?" answered":" no-hover")+'">'+
+      V.order.map((oi,p)=>{let cl="option";if(V.phase==="a")cl+=oi===c.a?" correct":oi===V.chosen?" incorrect":" dim";return '<button class="'+cl+'" data-vo="'+p+'"><span class="letter">'+"abc"[p]+'</span><span class="label">'+nl(c.opts[oi])+'</span></button>'}).join("")+'</div>'+
+      (V.phase==="a"&&c.exp?'<div class="explain"><span class="explain-title">Por qué</span>'+nl(c.exp)+'</div>':'')+'</div>'}
+  else if(c){h+='<div class="rv-card"><div class="qtext">'+nl(c.q)+'</div>'+(V.phase==="a"?'<div class="answerbox">'+nl(c.ans)+'</div>':'')+'</div>'}
+  else h+='<div class="rv-card"><div class="rv-done"><div class="rv-big">🎙</div><p>Di el número del tema que quieres estudiar, por ejemplo «tema diecisiete».</p></div></div>';
+  h+='<div class="vhelp">Responde: <b>A · B · C</b>, <b>1 · 2 · 3</b> o <b>Alfa · Bravo · Charlie</b>. También: «repite», «salta», «cambia de tema», «para».</div>';
+  h+='<div class="rv-actions"><button class="ghost" id="vExit">Salir</button>'+(V.on?'<button class="next-btn" id="vPause">Pausa</button>':'<button class="next-btn" id="vGo">'+(V.status==="paused"?"Continuar":"Empezar")+'</button>')+'</div></div>';
+  box.innerHTML=h;
+  $("#vExit").onclick=voiceExit;if($("#vPause"))$("#vPause").onclick=voicePause;if($("#vGo"))$("#vGo").onclick=voiceResume;
+  box.querySelectorAll("[data-vo]").forEach(b=>b.onclick=()=>{if(V.phase==="q"&&V.on){V.gen++;try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();voiceGrade(+b.dataset.vo)}})}
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&V&&V.on)voicePause()});
+
 /* ---------- estadísticas ---------- */
 const COL={n:"var(--new)",l:"var(--learn)",r:"var(--rev)",y:"var(--young)",m:"var(--mature)"};
 function fillDeckSelect(){$("#statDeck").innerHTML='<option value="all">Todos los temas</option>'+deckList().map(d=>'<option value="'+d.id+'">'+(d.num!=null?"T"+d.num+" · ":"")+esc(d.name)+'</option>').join("");
@@ -943,6 +1053,8 @@ function renderSettings(){
    '<p class="note" id="fbMsg">'+(lastSyncErr?"Último error de sincronización: "+esc(lastSyncErr):"")+'</p>'+
    '<div class="rowbtns"><button class="tbtn" id="exp">Exportar copia</button><button class="tbtn" id="imp">Importar copia</button></div>'+
    '<input type="file" id="impFile" accept=".json,application/json" hidden>'+
+   '<div class="sec-t">Estudiar por voz</div>'+
+   '<div class="field"><label for="vRate">Velocidad de la voz</label><select id="vRate">'+[[0.9,"Lenta"],[1.05,"Normal"],[1.2,"Rápida"],[1.35,"Muy rápida"]].map(([v,l])=>'<option value="'+v+'"'+((SYNC.voiceRate||1.05)==v?" selected":"")+'>'+l+'</option>').join("")+'</select></div>'+
    '<div class="sec-t">Avisos</div>'+
    '<p class="note">Te llega una notificación con las preguntas pendientes de cada tema, aunque la app esté cerrada. Necesita la sincronización con Firebase activada.</p>'+
    '<div class="field"><label for="pushHours">Horas de aviso (separadas por comas)</label><input id="pushHours" inputmode="numeric" value="'+esc((SYNC.hours||[]).join(", "))+'"></div>'+
@@ -956,6 +1068,7 @@ function renderSettings(){
    '<div class="sec-t">Datos</div>'+
    '<p class="note">Banco incluido: '+BANK.length+' preguntas tipo test de '+deckList().filter(d=>!d.custom).length+' temas.</p>'+
    '<div class="rowbtns"><button class="tbtn danger" id="wipe">Reiniciar todo el progreso</button></div>';
+  $("#vRate").onchange=e=>{SYNC.voiceRate=+e.target.value;saveSyncCfg();toast("Velocidad guardada")};
   $("#saveDef").onclick=()=>{CFG.newPerDay=Math.max(0,parseInt($("#defNew").value)||0);saveCfg();toast("Guardado")};
   $("#applyAll").onclick=()=>{CFG.newPerDay=Math.max(0,parseInt($("#defNew").value)||0);Object.keys(DECKS).forEach(id=>{dcfg(id).newPerDay=CFG.newPerDay});saveCfg();toast("Aplicado a todos los temas")};
   const saveUrl=()=>{const u=$("#fbUrl").value.trim();if(u&&!/^https:\/\/[^/]+\.(firebaseio\.com|firebasedatabase\.app)\/?$/.test(u)){$("#fbMsg").textContent="La URL debe ser la de la base de datos, del estilo https://algo.firebasedatabase.app (no la de la consola).";return false}SYNC.url=u;SYNC.syncOff=!u;saveSyncCfg();return true};
