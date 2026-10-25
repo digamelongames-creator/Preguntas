@@ -202,6 +202,21 @@ main{max-width:760px;margin:0 auto;padding-bottom:110px}
 .mq .ma em{display:block;font-style:normal;color:var(--muted);margin-top:4px}
 .mq .ma b{display:block;font-weight:500;color:var(--warn);margin-top:4px}
 .mitem.open .ma{display:block}
+.tnota{width:120px;text-align:right;font-family:var(--f-num);font-size:15px;padding-right:4px}
+.tnota b{font-weight:500}.tnota b.z{color:var(--zero)}
+.tbar{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.88rem;color:var(--rv-muted)}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:5px}
+.tgrid button{border:1px solid var(--rv-border);background:var(--rv-raised);color:var(--rv-text);border-radius:6px;padding:7px 0;font:600 .78rem var(--f-rvm);cursor:pointer}
+.tgrid .an{background:var(--rv-accent-soft);border-color:var(--rv-accent);color:var(--rv-accent)}
+.tgrid .ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.tgrid .ko{background:var(--ko-bg);border-color:var(--ko);color:var(--ko)}
+.tgrid .bl{background:var(--rv-bg);color:var(--rv-muted);border-style:dashed}
+.tgrid .cur{outline:2px solid var(--rv-text);outline-offset:1px}
+.option.picked{border-color:var(--rv-accent);background:var(--rv-accent-soft)}
+.option.picked .letter{background:var(--rv-accent);border-color:var(--rv-accent);color:var(--rv-accent-ink)}
+.tcomp{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.tcomp b{color:var(--fg);font-family:var(--f-num);font-weight:500}
+.eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--rv-muted);font-weight:600}
 .ref-title{display:block;font-size:.73rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--imp);margin-bottom:4px}
 .ref-status{font-size:.82rem;color:var(--imp);margin:0;min-height:1em}
 .ref-ov{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;color:var(--imp);max-width:420px}
@@ -352,6 +367,8 @@ table.plan{width:100%;border-collapse:collapse;font-size:13.5px}
   <section id="vReview" hidden></section>
   <section id="vVoice" hidden></section>
   <section id="vMarks" hidden></section>
+  <section id="vTestOv" hidden></section>
+  <section id="vTest" hidden></section>
   <section id="vStats" hidden><div class="stbar pad" id="periods"></div><div id="statsBody"></div></section>
   <section id="vSettings" hidden><div class="form pad" id="settingsBody"></div></section>
 </main>
@@ -429,6 +446,7 @@ function buildIndex(){
   for(const [did,cu] of Object.entries(CUSTOM)){if(!DECKS[did])continue;
     for(const c of Object.values(cu.cards||{})){CARDS[c.id]=Object.assign({ord:ord++},c,{did});DCARDS[did].push(c.id)}}
   for(const d of Object.values(DECKS)){const o=CFG.decks[d.id]||{};if(o.name)d.name=o.name}
+  buildTests();
 }
 const dcfg=did=>CFG.decks[did]||(CFG.decks[did]={});
 const deckList=()=>Object.values(DECKS).sort((a,b)=>(a.num??999)-(b.num??999)||a.name.localeCompare(b.name,"es"));
@@ -454,21 +472,21 @@ function idbOpen(){return new Promise(res=>{try{const r=indexedDB.open("mazos-op
 function idbGet(k){return new Promise(res=>{if(!idb)return res(null);try{const q=idb.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result??null);q.onerror=()=>res(null)}catch(e){res(null)}})}
 function idbSet(k,v){return new Promise(res=>{if(!idb)return res(false);try{const tx=idb.transaction("kv","readwrite");tx.objectStore("kv").put(v,k);tx.oncomplete=()=>res(true);tx.onerror=()=>res(false)}catch(e){res(false)}})}
 let MARKS={};
-const snapshot=()=>({v:2,CFG,ST,LOG,CUSTOM,REF,MARKS,DOCTS});
+const snapshot=()=>({v:2,CFG,ST,LOG,CUSTOM,REF,MARKS,TRES,DOCTS});
 let localT=null;
 function saveLocalSoon(){clearTimeout(localT);localT=setTimeout(saveLocalNow,400)}
 async function saveLocalNow(){clearTimeout(localT);const s=JSON.stringify(snapshot());if(!(await idbSet("state",s))){try{localStorage.setItem(LKEY,s)}catch(e){toast("No se pudo guardar el progreso en el dispositivo")}}}
-function applyState(r){CFG=Object.assign({newPerDay:10,decks:{},customDecks:{}},r.CFG||{});ST=r.ST||{};LOG=r.LOG||{};CUSTOM=r.CUSTOM||{};REF=r.REF||{};MARKS=r.MARKS||{};
+function applyState(r){CFG=Object.assign({newPerDay:10,decks:{},customDecks:{}},r.CFG||{});ST=r.ST||{};LOG=r.LOG||{};CUSTOM=r.CUSTOM||{};REF=r.REF||{};MARKS=r.MARKS||{};TRES=Object.assign({results:{},prog:{}},r.TRES||{});
   for(const k in DOCTS)delete DOCTS[k];Object.assign(DOCTS,r.DOCTS||{})}
 async function loadLocal(){idb=await idbOpen();let s=await idbGet("state");if(!s){try{s=localStorage.getItem(LKEY)}catch(e){}}
   if(s){try{applyState(JSON.parse(s));return true}catch(e){}}return false}
-function allPaths(){const p=["config/main","marcas/main"];Object.keys(ST).forEach(i=>p.push("srs/"+i));Object.keys(LOG).forEach(i=>p.push("revlog/"+i));Object.keys(CUSTOM).forEach(i=>p.push("custom/"+i));Object.keys(REF).forEach(i=>p.push("refuerzo/"+i));return p}
+function allPaths(){const p=["config/main","marcas/main","tests/main"];Object.keys(ST).forEach(i=>p.push("srs/"+i));Object.keys(LOG).forEach(i=>p.push("revlog/"+i));Object.keys(CUSTOM).forEach(i=>p.push("custom/"+i));Object.keys(REF).forEach(i=>p.push("refuerzo/"+i));return p}
 function docData(path){const i=path.indexOf("/"),col=path.slice(0,i),id=path.slice(i+1);
   if(col==="config")return CFG;if(col==="srs")return{cards:ST[id]||{}};if(col==="revlog")return{date:id,entries:LOG[id]||[]};
-  if(col==="custom")return CUSTOM[id]||{cards:{},edits:{},hidden:[]};if(col==="resumen")return buildResumen();if(col==="marcas")return{m:MARKS};return REF[id]||{items:{}}}
+  if(col==="custom")return CUSTOM[id]||{cards:{},edits:{},hidden:[]};if(col==="resumen")return buildResumen();if(col==="marcas")return{m:MARKS};if(col==="tests")return TRES;return REF[id]||{items:{}}}
 function setDoc(path,v){const i=path.indexOf("/"),col=path.slice(0,i),id=path.slice(i+1);
   if(col==="config")CFG=Object.assign({newPerDay:10,decks:{},customDecks:{}},v);else if(col==="srs")ST[id]=v.cards||{};
-  else if(col==="revlog")LOG[id]=v.entries||[];else if(col==="custom")CUSTOM[id]=v;else if(col==="refuerzo")REF[id]=v;else if(col==="marcas")MARKS=v.m||{}}
+  else if(col==="revlog")LOG[id]=v.entries||[];else if(col==="custom")CUSTOM[id]=v;else if(col==="refuerzo")REF[id]=v;else if(col==="marcas")MARKS=v.m||{};else if(col==="tests")TRES=Object.assign({results:{},prog:{}},v)}
 const pending=new Set();let pushT=null;
 function touch(path){DOCTS[path]=now();pending.add(path);DOCTS["resumen/main"]=now();pending.add("resumen/main");saveLocalSoon();if(SYNC.url){clearTimeout(pushT);pushT=setTimeout(pushRemote,2000)}}
 const saveSrs=did=>touch("srs/"+did),saveLog=ds=>touch("revlog/"+ds),saveCfg=()=>touch("config/main"),saveCustom=did=>touch("custom/"+did),saveRef=did=>touch("refuerzo/"+did),saveMarks=()=>touch("marcas/main");
@@ -591,20 +609,22 @@ function commit(cid,ease,ms,o){const c=CARDS[cid],did=c.did,n=now(),st=ST[did]||
 let view="decks",curDeck=null,statDeck="all",period=30;
 const ICON_MENU='<path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/>',ICON_BACK='<path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/>';
 function go(v,opts){view=v;if(opts&&opts.deck)curDeck=opts.deck;
-  ["vDecks","vOverview","vReview","vStats","vSettings","vVoice","vMarks"].forEach(id=>$("#"+id).hidden=true);
-  const sub=v==="overview"||v==="review"||v==="voice";document.body.classList.toggle("reviewing",v==="review");
+  ["vDecks","vOverview","vReview","vStats","vSettings","vVoice","vMarks","vTestOv","vTest"].forEach(id=>$("#"+id).hidden=true);
+  const sub=v==="overview"||v==="review"||v==="voice"||v==="testov"||v==="test";document.body.classList.toggle("reviewing",v==="review");
   $("#navIcon").innerHTML=sub?ICON_BACK:ICON_MENU;$("#navBtn").setAttribute("aria-label",sub?"Volver":"Menú");
   $("#fab").hidden=v!=="decks";$("#barCounts").hidden=v!=="review";$("#undoBtn").hidden=v!=="review"||!undo;$("#editBtn").hidden=v!=="review";$("#statDeck").hidden=v!=="stats";
   document.querySelectorAll(".dritem").forEach(b=>b.classList.toggle("on",b.dataset.go===v));
   if(v==="decks"){$("#title").textContent="Mazos";$("#vDecks").hidden=false;renderDecks()}
   if(v==="overview"){$("#title").textContent=DECKS[curDeck]?.name||"Mazo";$("#vOverview").hidden=false;renderOverview()}
   if(v==="review"){$("#title").textContent=DECKS[curDeck]?.name||(curDeck==="_marks"?"Preguntas marcadas":"");$("#vReview").hidden=false;sess={alt:0,last:null,done:0,ok:0,bad:0,start:now(),hist:[]};undo=null;showNext()}
+  if(v==="testov"){$("#title").textContent="Test "+curTest;$("#vTestOv").hidden=false;renderTestOv()}
+  if(v==="test"){$("#title").textContent=TR&&TR.T?"Test "+TR.T.n:"Test";$("#vTest").hidden=false;if(TR&&TR.result)renderTestResult();else renderTest()}
   if(v==="marks"){$("#title").textContent="Preguntas marcadas";$("#vMarks").hidden=false;renderMarks()}
   if(v==="voice"){$("#title").textContent="Estudiar por voz";$("#vVoice").hidden=false;renderVoice()}
   if(v==="stats"){$("#title").textContent="Estadísticas";$("#vStats").hidden=false;renderStats()}
   if(v==="settings"){$("#title").textContent="Ajustes";$("#vSettings").hidden=false;renderSettings()}
   closeDrawer();window.scrollTo(0,0)}
-$("#navBtn").onclick=()=>{if(view==="voice"){voiceExit();return}if(view==="review"&&curDeck==="_marks"){go("marks");return}if(view==="review"){const d=curDeck;go("overview");if(sess.done)maybeRefuerzo(d)}else if(view==="overview")go("decks");else openDrawer()};
+$("#navBtn").onclick=()=>{if(view==="test"){if(TR&&!TR.result)testSaveProg();TR=null;go("testov");return}if(view==="testov"){go("decks");return}if(view==="voice"){voiceExit();return}if(view==="review"&&curDeck==="_marks"){go("marks");return}if(view==="review"){const d=curDeck;go("overview");if(sess.done)maybeRefuerzo(d)}else if(view==="overview")go("decks");else openDrawer()};
 function openDrawer(){$("#scrim").hidden=false;requestAnimationFrame(()=>$("#drawer").classList.add("open"))}
 function closeDrawer(){$("#drawer").classList.remove("open");if(!$("#sheetHost").innerHTML)$("#scrim").hidden=true}
 $("#scrim").onclick=()=>{closeSheet();closeDrawer()};
@@ -632,10 +652,12 @@ function renderDecks(){const ds=deckList(),t=dayNum(now()),today=LOG[dayStr(t)]|
     const tags=(im?'<span class="tag imp">'+(im===2?"muy imp.":"imp.")+'</span>':'')+(c.weak?'<span class="tag weak">flojo</span>':'')+(c.paused?'<span class="tag pause">pausa</span>':'');
     const b=(v,cl)=>'<b class="'+cl+(v?"":" z")+'">'+v+'</b>';
     rows+='<div class="deck pad '+cls+'"><button class="main" data-open="'+d.id+'"><span class="mark"></span><span class="dn"><span class="nm">'+(d.num!=null?'<span class="num">T'+d.num+'</span>':'')+esc(d.name)+tags+'</span><small>'+info+'</small></span></button><div class="cols tabnum">'+b(k.n,"c-n")+b(k.l,"c-l")+b(k.r,"c-r")+'</div><button class="more" data-more="'+d.id+'" aria-label="Opciones del mazo">'+I.more+'</button></div>'}
+  rows+=testRows();
   const nMk=markedIds("all","all").length;
   $("#summary").innerHTML=(nMk?'<button class="mkbar" id="mkBar">⭐ '+nMk+' preguntas marcadas · ver y estudiar</button>':'')+'<span><b>'+due+'</b> preguntas para hoy en <b>'+act+'</b> de '+ds.length+' temas</span><span>Hoy: '+today.length+' respondidas · '+Math.round(ms/60000)+' min</span>';
   $("#deckList").innerHTML=ds.length?'<div class="dhead pad"><span class="sp">Tema</span><div class="cols"><span>Nue</span><span>Apr</span><span>Rep</span></div><span style="width:40px"></span></div>'+rows:'<div class="empty">No hay mazos.</div>';
   if($("#mkBar"))$("#mkBar").onclick=()=>go("marks");
+  $("#deckList").querySelectorAll("[data-test]").forEach(b=>b.onclick=()=>openTest(+b.dataset.test));
   $("#deckList").querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>go("overview",{deck:b.dataset.open}));
   $("#deckList").querySelectorAll("[data-more]").forEach(b=>b.onclick=()=>deckMenu(b.dataset.more))}
 function deckMenu(did){const d=DECKS[did],c=dcfg(did);
@@ -1050,6 +1072,100 @@ function renderMarks(){const all=markedIds("all","all"),ids=markedIds(MK.tag,MK.
   $("#mkD").onchange=e=>{MK.did=e.target.value;renderMarks()};
   box.querySelectorAll("[data-mopen]").forEach(b=>b.onclick=()=>b.parentElement.classList.toggle("open"));
   $("#mkStudy").onclick=()=>go("review",{deck:"_marks"})}
+/* ---------- test de 100 preguntas (simulacros) ---------- */
+let TESTS=[];                                  // [{n, ids}]
+let TRES={results:{},prog:{}};                 // resultados e intentos en curso
+const hash32=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
+function buildTests(){const byT={};
+  BANK.forEach(q=>{if(!CARDS[q.id]||CARDS[q.id].kind!=="test")return;const t=parseInt(q.tema,10);(byT[t]=byT[t]||[]).push(q.id)});
+  const keyed=[];
+  for(const [t,ids] of Object.entries(byT)){ids.sort((a,b)=>hash32(a+"·mezcla")-hash32(b+"·mezcla"));const n=ids.length,off=(hash32("tema"+t)%1000)/1e7;
+    ids.forEach((id,k)=>keyed.push([(k+0.5)/n+off,id]))}
+  keyed.sort((a,b)=>a[0]-b[0]);
+  TESTS=[];for(let i=0;i<keyed.length;i+=100)TESTS.push({n:TESTS.length+1,ids:keyed.slice(i,i+100).map(x=>x[1])})}
+const saveTests=()=>touch("tests/main");
+const notaDe=(ok,ko,tot)=>tot?Math.max(0,(ok-ko*0.5)/tot*10):0;
+const fmtNota=x=>x.toFixed(2).replace(".",",");
+function testRows(){if(!TESTS.length)return"";let h='<div class="grp pad">Test · simulacros de '+TESTS[0].ids.length+' preguntas</div>';
+  TESTS.forEach(T=>{const rs=TRES.results[T.n]||[],last=rs[rs.length-1],pg=TRES.prog[T.n];
+    const cls=pg?"due":(last?"done":"");
+    const info=T.ids.length+" preguntas · "+(pg?'<span class="when">en curso: pregunta '+(Object.keys(pg.ans||{}).length+1)+'</span>':last?"última nota "+fmtNota(last.nota)+" · "+relDay(dayNum(last.t))+(rs.length>1?" · "+rs.length+" intentos":""):"sin hacer");
+    h+='<div class="deck pad '+cls+'"><button class="main" data-test="'+T.n+'"><span class="mark"></span><span class="dn"><span class="nm">Test '+T.n+'</span><small>'+info+'</small></span></button>'+
+      '<div class="tnota tabnum">'+(last?'<b class="'+(last.nota>=5?"c-r":"c-l")+'">'+fmtNota(last.nota)+'</b>':'<b class="z">—</b>')+'</div></div>'});
+  return h}
+function testComposition(T){const c={};T.ids.forEach(id=>{const d=CARDS[id]&&CARDS[id].did;if(d)c[d]=(c[d]||0)+1});
+  return Object.entries(c).map(([d,n])=>[DECKS[d],n]).filter(x=>x[0]).sort((a,b)=>b[1]-a[1])}
+let curTest=null,TR=null;
+function openTest(n){curTest=n;go("testov")}
+function renderTestOv(){const T=TESTS[curTest-1];if(!T){go("decks");return}const rs=TRES.results[T.n]||[],pg=TRES.prog[T.n],comp=testComposition(T);
+  const mode=CFG.testMode||"examen";
+  let h='<div class="ov pad"><h2>Test '+T.n+'</h2><div class="ovmeta">'+T.ids.length+' preguntas de '+comp.length+' temas · acierto +1, fallo −0,5, en blanco 0</div>'+
+    '<div class="seg2" style="justify-content:center"><button class="seg'+(mode==="examen"?" on":"")+'" data-tm="examen">Modo examen</button><button class="seg'+(mode==="estudio"?" on":"")+'" data-tm="estudio">Corregir al momento</button></div>'+
+    '<div class="ovmeta" style="max-width:420px">'+(mode==="examen"?"Respondes todas, puedes volver atrás y cambiar respuestas, y ves la nota al entregar.":"Ves si aciertas y la explicación después de cada pregunta.")+'</div>'+
+    '<button class="bigbtn" id="tStart">'+(pg?"Continuar (pregunta "+(Object.keys(pg.ans||{}).length+1)+")":"Empezar")+'</button>'+(pg?'<button class="chipbtn" id="tRestart">Empezar de cero</button>':'')+'</div>';
+  if(rs.length)h+='<div class="sec pad"><h3>Intentos</h3><div class="tblwrap"><table class="plan"><thead><tr><th>Fecha</th><th style="text-align:right">Aciertos</th><th style="text-align:right">Fallos</th><th style="text-align:right">Blanco</th><th style="text-align:right">Nota</th></tr></thead><tbody>'+
+    rs.slice().reverse().map(r=>'<tr><td>'+fmtDay(dayNum(r.t))+' · '+Math.round(r.ms/60000)+' min</td><td class="num good">'+r.ok+'</td><td class="num bad">'+r.ko+'</td><td class="num">'+r.bl+'</td><td class="num"><b>'+fmtNota(r.nota)+'</b></td></tr>').join("")+'</tbody></table></div></div>';
+  h+='<div class="sec pad"><h3>Preguntas por tema</h3><p class="sub">Reparto proporcional al número de preguntas de cada tema en el banco</p><div class="tcomp">'+
+    comp.map(([d,n])=>'<span>'+(d.num!=null?"T"+d.num:esc(d.name))+' <b>'+n+'</b></span>').join("")+'</div></div>';
+  $("#vTestOv").innerHTML=h;
+  $("#vTestOv").querySelectorAll("[data-tm]").forEach(b=>b.onclick=()=>{CFG.testMode=b.dataset.tm;saveCfg();renderTestOv()});
+  $("#tStart").onclick=()=>startTest(false);if($("#tRestart"))$("#tRestart").onclick=()=>confirmBox("¿Descartar el intento en curso y empezar de cero?","Empezar de cero",()=>startTest(true))}
+function startTest(fresh){const T=TESTS[curTest-1];let pg=fresh?null:TRES.prog[T.n];
+  if(!pg){const order={};T.ids.forEach(id=>order[id]=shuffle3());pg={mode:CFG.testMode||"examen",ans:{},order,pos:0,ms:0,start:now(),done:{}};TRES.prog[T.n]=pg;saveTests()}
+  TR={T,pg,qStart:now(),sessStart:now(),showGrid:false};go("test")}
+function testSaveProg(){if(!TR)return;TR.pg.ms+=now()-TR.sessStart;TR.sessStart=now();saveTests()}
+function renderTest(){if(!TR){go("decks");return}const {T,pg}=TR,ids=T.ids,i=Math.min(pg.pos,ids.length-1),cid=ids[i],c=CARDS[cid],ex=pg.mode==="examen";
+  const answered=Object.keys(pg.ans).length,ord=pg.order[cid]||[0,1,2],a=pg.ans[cid];
+  const reveal=!ex&&a!=null;
+  let h='<div class="rv pad"><div class="tbar"><span class="mono">'+(i+1)+' / '+ids.length+'</span><span>'+answered+' respondidas</span><button class="ghost" id="tGrid">'+(TR.showGrid?"Ocultar mapa":"Mapa")+'</button></div>'+
+    '<div class="rv-track"><div class="rv-fill" style="width:'+Math.round(100*answered/ids.length)+'%"></div></div>';
+  if(TR.showGrid)h+='<div class="tgrid">'+ids.map((id,k)=>{const v=pg.ans[id];let cl="";if(v!=null){cl=v==="b"?"bl":ex?"an":(v===CARDS[id].a?"ok":"ko")}return '<button class="'+cl+(k===i?" cur":"")+'" data-tj="'+k+'">'+(k+1)+'</button>'}).join("")+'</div>';
+  if(!c){h+='<div class="rv-card"><p>Esta pregunta ya no existe.</p></div>'}
+  else{const d=DECKS[c.did];
+    h+='<div class="rv-card"><div class="rv-top"><span class="rv-num">Test '+T.n+' · '+(d.num!=null?"Tema "+d.num:esc(d.name))+'</span>'+(a==="b"?'<span class="chip past">en blanco</span>':'')+'</div><div class="qtext">'+nl(c.q)+'</div>'+
+      '<div class="options'+(reveal?" answered":"")+'">'+ord.map((oi,p)=>{let cl="option";
+        if(reveal){cl+=oi===c.a?" correct":oi===a?" incorrect":" dim"}else if(a===oi)cl+=" picked";
+        return '<button class="'+cl+'" data-to="'+oi+'"><span class="letter">'+"abc"[p]+'</span><span class="label">'+nl(c.opts[oi])+'</span></button>'}).join("")+'</div>';
+    if(reveal){const ok=a===c.a;h+='<div class="feedback"><span class="fb-text '+(ok?"ok":"bad")+'">'+(ok?"Correcto":"Incorrecto")+'</span></div>'+(c.exp?'<div class="explain"><span class="explain-title">Por qué</span>'+nl(c.exp)+'</div>':'')+refBlock(cid)}
+    else if(!ex&&a==="b")h+='<div class="feedback"><span class="fb-text">En blanco · la correcta era: '+esc(c.opts[c.a])+'</span></div>';
+    h+=marksRow(cid);
+    const last=i>=ids.length-1;
+    h+='<div class="rv-actions"><div class="rv-left"><button class="navbtn" id="tPrev"'+(i>0?"":" disabled")+'>‹</button>'+(a==null||ex?'<button class="ghost" id="tBlank">En blanco</button>':'')+'</div>'+
+      (last?'<button class="next-btn" id="tEnd">'+(ex?"Entregar":"Ver resultado")+'</button>':'<button class="next-btn" id="tNext">'+(a==null&&!ex?"Saltar ›":"Siguiente ›")+'</button>')+'</div>';
+    if(ex&&!last)h+='<div class="rv-actions"><span></span><button class="ghost" id="tEnd">Entregar ahora</button></div>';
+    h+='</div>'}
+  h+='</div>';$("#vTest").innerHTML=h;
+  const go2=k=>{pg.pos=Math.max(0,Math.min(ids.length-1,k));TR.qStart=now();testSaveProg();renderTest();window.scrollTo(0,0)};
+  $("#tGrid").onclick=()=>{TR.showGrid=!TR.showGrid;renderTest()};
+  $("#vTest").querySelectorAll("[data-tj]").forEach(b=>b.onclick=()=>{TR.showGrid=false;go2(+b.dataset.tj)});
+  if($("#tPrev"))$("#tPrev").onclick=()=>go2(i-1);if($("#tNext"))$("#tNext").onclick=()=>go2(i+1);
+  if($("#tBlank"))$("#tBlank").onclick=()=>{pg.ans[cid]="b";if(!ex){testSaveProg();renderTest()}else go2(i+1)};
+  $("#vTest").querySelectorAll("[data-tend],#tEnd").forEach(b=>b.onclick=()=>{const left=ids.filter(id=>pg.ans[id]==null).length;
+    if(ex&&left)confirmBox("Quedan "+left+" sin responder; contarán como en blanco. ¿Entregar?","Entregar",finishTest);else finishTest()});
+  $("#vTest").querySelectorAll("[data-to]").forEach(b=>b.onclick=()=>{const oi=+b.dataset.to;
+    if(reveal){if(i<ids.length-1)go2(i+1);return}
+    pg.ans[cid]=oi;
+    if(!ex){commitTestAnswer(cid,oi);testSaveProg();renderTest()}else{testSaveProg();renderTest();setTimeout(()=>{if(TR&&pg.pos===i&&i<ids.length-1)go2(i+1)},350)}})}
+function commitTestAnswer(cid,oi){const pg=TR.pg;if(pg.done[cid]||!CARDS[cid])return;const c=CARDS[cid],ms=Math.min(120000,now()-TR.qStart);
+  commit(cid,oi===c.a?preGrade(ms):1,ms,oi);pg.done[cid]=1}
+function finishTest(){const {T,pg}=TR;let ok=0,ko=0,bl=0;const per={};
+  T.ids.forEach(id=>{const c=CARDS[id];if(!c)return;const a=pg.ans[id],d=c.did;per[d]=per[d]||{ok:0,ko:0,bl:0};
+    if(a==null||a==="b"){bl++;per[d].bl++;return}if(pg.mode==="examen")commitTestAnswer(id,a);if(a===c.a){ok++;per[d].ok++}else{ko++;per[d].ko++}});
+  pg.ms+=now()-TR.sessStart;const tot=T.ids.filter(id=>CARDS[id]).length,r={t:now(),ok,ko,bl,nota:notaDe(ok,ko,tot),ms:pg.ms,mode:pg.mode};
+  (TRES.results[T.n]=TRES.results[T.n]||[]).push(r);const ans=pg.ans,order=pg.order;delete TRES.prog[T.n];saveTests();
+  TR={T,result:r,per,ans,order};go("test")}
+function renderTestResult(){const {T,result:r,per,ans}=TR;
+  const fails=T.ids.filter(id=>CARDS[id]&&ans[id]!=null&&ans[id]!=="b"&&ans[id]!==CARDS[id].a);
+  let h='<div class="rv pad"><div class="rv-card"><div class="rv-done"><span class="eyebrow">Test '+T.n+' · nota</span><div class="rv-big" style="font-size:3rem;color:'+(r.nota>=5?"var(--ok)":"var(--ko)")+'">'+fmtNota(r.nota)+'</div>'+
+    '<p>'+r.ok+' aciertos · '+r.ko+' fallos · '+r.bl+' en blanco · '+Math.round(r.ms/60000)+' min</p><p style="font-size:.85rem">Fórmula: (aciertos − fallos × 0,5) / '+T.ids.length+' × 10. Las respuestas ya cuentan como estudiadas en su tema.</p></div></div>'+
+    '<div class="sec" style="border-radius:12px;border:1px solid var(--rv-border)"><div class="pad"><h3>Por tema</h3><div class="tblwrap"><table class="plan"><thead><tr><th>Tema</th><th style="text-align:right">Bien</th><th style="text-align:right">Mal</th><th style="text-align:right">Blanco</th></tr></thead><tbody>'+
+    Object.entries(per).map(([d,x])=>[DECKS[d],x]).filter(z=>z[0]).sort((a,b)=>(b[1].ko-a[1].ko)||((a[0].num??0)-(b[0].num??0))).map(([d,x])=>'<tr><td>'+(d.num!=null?"T"+d.num+" · ":"")+esc(d.name)+'</td><td class="num good">'+x.ok+'</td><td class="num bad">'+x.ko+'</td><td class="num">'+x.bl+'</td></tr>').join("")+'</tbody></table></div></div></div>';
+  if(fails.length)h+='<div class="sec" style="border-radius:12px;border:1px solid var(--rv-border)"><div class="pad"><h3>Falladas ('+fails.length+')</h3><div class="qlist">'+fails.map((id,k)=>{const c=CARDS[id];
+      return '<div class="mitem" style="padding-inline:0"><button class="mq" data-mopen><small>Tema '+(DECKS[c.did].num??"")+' · respondiste: '+esc(c.opts[ans[id]])+'</small><span>'+esc(c.q)+'</span><span class="ma">'+nl(c.opts[c.a])+(c.exp?'<em>'+nl(c.exp)+'</em>':'')+'</span></button>'+marksRow(id)+'</div>'}).join("")+'</div></div></div>';
+  h+='<div class="rv-actions"><button class="ghost" id="tBack">Volver a los test</button><button class="next-btn" id="tAgain">Repetir test</button></div></div>';
+  $("#vTest").innerHTML=h;
+  $("#vTest").querySelectorAll("[data-mopen]").forEach(b=>b.onclick=()=>b.parentElement.classList.toggle("open"));
+  $("#tBack").onclick=()=>{TR=null;go("decks")};$("#tAgain").onclick=()=>{TR=null;startTest(true)}}
 /* ---------- estadísticas ---------- */
 const COL={n:"var(--new)",l:"var(--learn)",r:"var(--rev)",y:"var(--young)",m:"var(--mature)"};
 function fillDeckSelect(){$("#statDeck").innerHTML='<option value="all">Todos los temas</option>'+deckList().map(d=>'<option value="'+d.id+'">'+(d.num!=null?"T"+d.num+" · ":"")+esc(d.name)+'</option>').join("");
