@@ -159,8 +159,8 @@ main{max-width:760px;margin:0 auto;padding-bottom:110px}
 .options{display:flex;flex-direction:column;gap:10px}
 .option{display:flex;align-items:flex-start;gap:12px;text-align:left;width:100%;padding:15px 16px;border-radius:11px;border:1.5px solid var(--rv-border);
   background:var(--rv-raised);color:var(--rv-text);font-family:var(--f-rv);font-size:1.05rem;line-height:1.5;cursor:pointer}
-.options:not(.answered) .option:hover:not(:disabled){border-color:var(--rv-accent);background:var(--rv-accent-soft)}
-.options.no-hover .option:hover{border-color:var(--rv-border);background:var(--rv-raised)}
+@media (hover:hover) and (pointer:fine){.options:not(.answered):not(.no-hover) .option:hover:not(:disabled){border-color:var(--rv-accent);background:var(--rv-accent-soft)}}
+.option{-webkit-tap-highlight-color:transparent}
 .option:disabled{cursor:default}
 .option .letter{font-family:var(--f-rvm);font-weight:600;font-size:.9rem;width:26px;height:26px;min-width:26px;border-radius:6px;border:1.5px solid var(--rv-border);
   display:flex;align-items:center;justify-content:center;color:var(--rv-muted);margin-top:1px}
@@ -814,7 +814,7 @@ function wireCard(ro){const v=$("#vReview"),c=CARDS[ro?sess.hist[hpos].cid:cur];
   $("#prevQ").onclick=goBack;
   if(ro){$("#fwdQ").onclick=goFwd;v.querySelectorAll(".option").forEach(b=>b.onclick=goFwd);$("#qtext").onclick=goFwd;if($("#editInline"))$("#editInline").onclick=()=>cardForm(c.did,c.id);return}
   if(c.kind==="test"){const ow=$("#opts");
-    if(phase==="q"){const clr=()=>{ow.classList.remove("no-hover");ow.removeEventListener("mousemove",clr)};ow.addEventListener("mousemove",clr);ow.querySelectorAll(".option").forEach(b=>b.onclick=()=>choose(+b.dataset.o))}
+    if(phase==="q"){const clr=e=>{if(e.pointerType!=="mouse")return;ow.classList.remove("no-hover");ow.removeEventListener("pointermove",clr)};ow.addEventListener("pointermove",clr);ow.querySelectorAll(".option").forEach(b=>b.onclick=()=>choose(+b.dataset.o))}
     else{ow.querySelectorAll(".option").forEach(b=>b.onclick=next);$("#qtext").onclick=next}}
   if(c.kind==="basic"&&phase==="q")$("#showBtn").onclick=()=>{phase="a";grade=3;elapsed=now()-shownAt;renderCard()};
   if(phase==="a"){v.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{grade=+b.dataset.g;auto=null;renderCard()});$("#nextBtn").onclick=next;$("#editInline").onclick=()=>cardForm(c.did,c.id);$("#nextBtn").focus({preventScroll:true})}}
