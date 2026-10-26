@@ -550,8 +550,9 @@ const LS=[1,10],RLS=[10],AHEAD=20*60e3;
 const maxIvl=did=>dcfg(did).weak?7:36500;
 function sched(s0,ease,n,did){const s=Object.assign({ty:"new",ivl:0,ease:2.5,step:0,reps:0,lap:0},s0||{}),t=dayNum(n),cap=maxIvl(did);
   const grad=ivl=>{s.ty="review";s.ivl=Math.min(ivl,cap);s.due=t+s.ivl;s.step=0};
-  if(s.ty==="new"){s.ty="learn";s.step=0}
-  if(s.ty==="learn"){
+  const first=s.ty==="new";if(first){s.ty="learn";s.step=0}
+  if(first&&ease>=3)grad(ease===4?10:5);   // primera vez: Muy fácil 10 días, Bien 5 días
+  else if(s.ty==="learn"){
     if(ease===1){s.step=0;s.due=n+LS[0]*60e3}
     else if(ease===2){s.due=n+(s.step===0?(LS[0]+LS[1])/2:LS[s.step])*60e3}
     else if(ease===3){s.step++;if(s.step>=LS.length)grad(1);else s.due=n+LS[s.step]*60e3}
@@ -618,7 +619,7 @@ function go(v,opts){view=v;if(opts&&opts.deck)curDeck=opts.deck;
   if(v==="overview"){$("#title").textContent=DECKS[curDeck]?.name||"Mazo";$("#vOverview").hidden=false;renderOverview()}
   if(v==="review"){$("#title").textContent=DECKS[curDeck]?.name||(curDeck==="_marks"?"Preguntas marcadas":"");$("#vReview").hidden=false;sess={alt:0,last:null,done:0,ok:0,bad:0,start:now(),hist:[]};undo=null;showNext()}
   if(v==="testov"){$("#title").textContent="Test "+curTest;$("#vTestOv").hidden=false;renderTestOv()}
-  if(v==="test"){$("#title").textContent=TR&&TR.T?"Test "+TR.T.n:"Test";$("#vTest").hidden=false;if(TR&&TR.result)renderTestResult();else renderTest()}
+  if(v==="test"){$("#title").textContent=TR&&TR.T?"Test "+TR.T.n+(TR.T.retry?" · falladas":""):"Test";$("#vTest").hidden=false;if(TR&&TR.result)renderTestResult();else renderTest()}
   if(v==="marks"){$("#title").textContent="Preguntas marcadas";$("#vMarks").hidden=false;renderMarks()}
   if(v==="voice"){$("#title").textContent="Estudiar por voz";$("#vVoice").hidden=false;renderVoice()}
   if(v==="stats"){$("#title").textContent="Estadísticas";$("#vStats").hidden=false;renderStats()}
@@ -770,7 +771,7 @@ function renderBar(){const k=counts(curDeck),ty=cur?typeOf(stOf(cur)):"",T=ty===
   $("#barCounts").innerHTML='<span class="bc-n'+(cur&&T==="n"?" cur":"")+'">'+k.n+'</span><span class="bc-l'+(cur&&T==="l"?" cur":"")+'">'+k.l+'</span><span class="bc-r'+(cur&&T==="r"?" cur":"")+'">'+k.r+'</span>';
   $("#undoBtn").hidden=!undo;$("#editBtn").hidden=!cur;return k}
 function tiles(){return '<div class="rv-tiles"><div class="rv-tile"><span class="n">'+sess.done+'</span><span class="l">respondidas</span></div><div class="rv-tile"><span class="n ok">'+sess.ok+'</span><span class="l">aciertos</span></div><div class="rv-tile"><span class="n bad">'+sess.bad+'</span><span class="l">fallos</span></div></div>'}
-const preGrade=ms=>ms<10000?4:ms<=30000?3:2;
+const preGrade=ms=>ms<16000?4:ms<=30000?3:2;
 const GNAME={1:"Fallo",2:"La dudé",3:"Bien",4:"Muy fácil"};
 const secs=ms=>Math.max(1,Math.round(ms/1000))+" s";
 function refBlock(cid){const c=CARDS[cid],r=c&&REF[c.did]?.items?.[cid];if(!r)return"";
@@ -943,7 +944,7 @@ async function hear(prompt,tries){for(let k=0;k<(tries||3);k++){if(!V||!V.on)ret
     if(alts&&alts.length){setVStatus("think",alts[0]);return alts}
     if(k<(tries||3)-1&&prompt)await say(prompt)}
   return null}
-async function voiceAskTema(q){V.phase="tema";V.cur=null;renderVoice();await say(q);
+async function voiceAskTema(q){if(V.test){await say("En el test no se cambia de tema.");return voiceNext()}V.phase="tema";V.cur=null;renderVoice();await say(q);
   const alts=await hear("Dime el número del tema.",3);if(!alts){if(V&&V.on)voicePause();return}
   const all=alts.join(" "),cmd=parseCmd(all);if(cmd==="exit"||cmd==="pause"){voicePause();return}
   let n=null;for(const a of alts){n=wordsToNum(a);if(n!=null)break}
@@ -954,7 +955,24 @@ async function voiceAskTema(q){V.phase="tema";V.cur=null;renderVoice();await say
 async function voiceDeck(did){V.did=did;const d=DECKS[did],k=counts(did),sum=k.n+k.l+k.r;
   if(!sum){const nx=nextStudy(did);return voiceAskTema("El tema "+(d.num??d.name)+" no tiene preguntas pendientes"+(nx!=null?"; te toca "+relDay(nx):"")+". ¿Qué otro tema quieres?")}
   V.done=0;V.ok=0;V.last=null;await say("Tema "+(d.num!=null?d.num+", ":"")+d.name+". Tienes "+sum+" preguntas. Responde A, B o C, uno, dos o tres, o alfa, bravo o charlie.");voiceNext()}
-async function voiceNext(){if(!V||!V.on)return;const cid=nextCard(V.did,V.last);
+function voiceStartTest(){if(!TR||TR.result)return;if(!voiceOK()){toast("Este navegador no permite estudiar por voz; usa Chrome");return}
+  testSaveProg();V={gen:0,on:true,did:null,test:true,status:"idle",heard:"",cur:null,order:[0,1,2],last:null,done:0,ok:0,phase:"q",lock:null,msg:""};
+  try{navigator.wakeLock&&navigator.wakeLock.request("screen").then(l=>{if(V)V.lock=l}).catch(()=>{})}catch(e){}
+  go("voice");speechSynthesis.getVoices();setTimeout(async()=>{if(!V||!V.on)return;const ex=TR.pg.mode==="examen",left=TR.T.ids.filter(id=>TR.pg.ans[id]==null&&CARDS[id]).length;
+    await say((TR.T.retry?"Repaso de falladas del test ":"Test ")+TR.T.n+". Te quedan "+left+" preguntas."+(ex?" Modo examen: no te diré si aciertas hasta entregar.":"")+" Responde A, B o C. Di salta para dejarla en blanco.");voiceNext()},250)}
+function voiceTestNext(){const {T,pg}=TR,ids=T.ids;let k=-1;
+  for(let j=0;j<ids.length;j++){const q=(pg.pos+j)%ids.length;if(pg.ans[ids[q]]==null&&CARDS[ids[q]]&&CARDS[ids[q]].kind==="test"){k=q;break}}
+  if(k<0){voiceStop();finishTest();try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance("Test terminado. Tu nota es "+fmtNota(TR.result.nota)+".");u.lang="es-ES";speechSynthesis.speak(u)}catch(e){}return}
+  pg.pos=k;const cid=ids[k];V.cur=cid;V.phase="q";V.order=pg.order[cid]||(pg.order[cid]=shuffle3());V.chosen=null;V.heard="";V.t0=null;V.tq=now();renderVoice();voiceAsk()}
+async function voiceTestGrade(pos){stopBarge();V.reading=false;const {pg}=TR,cid=V.cur,c=CARDS[cid],oi=V.order[pos],ok=oi===c.a,ms=Math.min(120000,now()-(V.t0||V.tq||now())),ex=pg.mode==="examen";
+  pg.ans[cid]=oi;V.chosen=oi;V.lastDone=cid;V.last=cid;V.done++;if(ok)V.ok++;
+  if(!ex&&!pg.done[cid]){commit(cid,ok?preGrade(ms):1,ms,oi);pg.done[cid]=1}
+  testSaveProg();
+  if(ex){renderVoice();await say("Anotada la "+"ABC"[pos]+".")}
+  else{V.phase="a";renderVoice();const right="ABC"[V.order.indexOf(c.a)];await say(ok?"Correcto.":"Incorrecto. La correcta es la "+right+": "+c.opts[c.a]+".");if(c.exp)await say(c.exp)}
+  await new Promise(r=>setTimeout(r,400));if(V&&V.on)voiceNext()}
+async function voiceTestSkip(){const cid=V.cur;if(cid)TR.pg.ans[cid]="b";V.last=cid;testSaveProg();await say("En blanco.");voiceNext()}
+async function voiceNext(){if(!V||!V.on)return;if(V.test)return voiceTestNext();const cid=nextCard(V.did,V.last);
   if(!cid){const d=DECKS[V.did];return voiceAskTema("Has terminado el tema "+(d.num??d.name)+". "+V.ok+" aciertos de "+V.done+". ¿Quieres otro tema? Di el número o di salir.")}
   const c=CARDS[cid];if(c.kind!=="test"){V.last=cid;return voiceBasic(cid)}
   V.cur=cid;V.phase="q";V.order=shuffle3();V.chosen=null;V.heard="";V.t0=null;V.tq=now();renderVoice();voiceAsk()}
@@ -965,11 +983,11 @@ async function voiceAnswer(){let miss=0;const g=V.gen;
     const mk=parseMark(alts[0]);if(mk){applyVoiceMark(mk);await say(mk.prev?"Marcada la anterior.":"Marcada como "+MTAGN[mk.tag].replace("⭐ ","")+".");continue}
     const all=alts.join(" | "),cmd=parseCmd(alts[0]);
     if(cmd==="pause"){voicePause();return}if(cmd==="exit"){voiceExit();return}if(cmd==="change"){V.last=V.cur;return voiceAskTema("¿Qué tema quieres?")}
-    if(cmd==="repeat"){await voiceRead();continue}if(cmd==="explain")continue;if(cmd==="skip"){V.last=V.cur;await say("Saltada.");return voiceNext()}
+    if(cmd==="repeat"){await voiceRead();continue}if(cmd==="explain")continue;if(cmd==="skip"&&V.test)return voiceTestSkip();if(cmd==="skip"){V.last=V.cur;await say("Saltada.");return voiceNext()}
     let pos=null;for(const a of alts){if(looksEcho(a))continue;pos=parseAnswer(a);if(pos!=null)break}
     if(pos==null){if(alts.every(a=>looksEcho(a)))continue;await say("No te he entendido. Di A, B o C.");continue}
     return voiceGrade(pos)}}
-async function voiceGrade(pos){stopBarge();V.reading=false;const c=CARDS[V.cur],oi=V.order[pos],ok=oi===c.a,ms=now()-(V.t0||V.tq||now());
+async function voiceGrade(pos){if(V.test)return voiceTestGrade(pos);stopBarge();V.reading=false;const c=CARDS[V.cur],oi=V.order[pos],ok=oi===c.a,ms=now()-(V.t0||V.tq||now());
   const g=ok?preGrade(ms):1;V.chosen=oi;V.phase="a";V.lastDone=V.cur;const r=commit(V.cur,g,ms,oi);V.done++;if(ok)V.ok++;V.last=V.cur;renderVoice();
   const right="ABC"[V.order.indexOf(c.a)];
   await say(ok?"Correcto.":"Incorrecto. La correcta es la "+right+": "+c.opts[c.a]+".");
@@ -981,19 +999,19 @@ async function voiceBasic(cid){V.cur=cid;V.phase="q";renderVoice();const c=CARDS
   const alts=await hear("¿Sí o no?",2);const yes=alts&&/\b(si|sí|sabia|bien|correcto)\b/.test(normTxt(alts.join(" ")));
   commit(cid,yes?3:1,8000,null);V.done++;if(yes)V.ok++;voiceNext()}
 function voicePause(){if(!V)return;stopBarge();V.on=false;V.gen++;try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();V.status="paused";renderVoice()}
-function voiceResume(){if(!V)return;V.on=true;V.gen++;V.msg="";if(V.phase==="q"&&V.cur){renderVoice();voiceAsk()}else if(V.did&&V.phase!=="tema")voiceNext();else voiceAskTema("¿Qué tema quieres estudiar?")}
-function voiceExit(){const d=V&&V.did;voiceStop();go(d?"overview":"decks",d?{deck:d}:undefined)}
-function renderVoice(){const box=$("#vVoice");if(!box||view!=="voice"||!V)return;const c=V.cur?CARDS[V.cur]:null,d=V.did?DECKS[V.did]:null;
+function voiceResume(){if(!V)return;V.on=true;V.gen++;V.msg="";if(V.phase==="q"&&V.cur){renderVoice();voiceAsk()}else if((V.did||V.test)&&V.phase!=="tema")voiceNext();else voiceAskTema("¿Qué tema quieres estudiar?")}
+function voiceExit(){if(V&&V.test){voiceStop();if(TR&&!TR.result){TR.sessStart=now();TR.qStart=now();go("test")}else go("decks");return}const d=V&&V.did;voiceStop();go(d?"overview":"decks",d?{deck:d}:undefined)}
+function renderVoice(){const box=$("#vVoice");if(!box||view!=="voice"||!V)return;const c=V.cur?CARDS[V.cur]:null,d=V.did?DECKS[V.did]:(c?DECKS[c.did]:null),tx=V.test&&TR&&TR.pg&&TR.pg.mode==="examen";
   const ST={speak:"Hablando…",listen:"Escuchando…",think:"Entendido",idle:"",paused:"En pausa"};
-  let h='<div class="rv pad"><div class="rv-tiles"><div class="rv-tile"><span class="n">'+V.done+'</span><span class="l">respondidas</span></div><div class="rv-tile"><span class="n ok">'+V.ok+'</span><span class="l">aciertos</span></div><div class="rv-tile"><span class="n bad">'+(V.done-V.ok)+'</span><span class="l">fallos</span></div></div>';
+  let h='<div class="rv pad"><div class="rv-tiles"><div class="rv-tile"><span class="n">'+V.done+'</span><span class="l">respondidas</span></div>'+(tx?'<div class="rv-tile"><span class="n">'+TR.T.ids.filter(id=>TR.pg.ans[id]==null&&CARDS[id]).length+'</span><span class="l">quedan</span></div>':'<div class="rv-tile"><span class="n ok">'+V.ok+'</span><span class="l">aciertos</span></div><div class="rv-tile"><span class="n bad">'+(V.done-V.ok)+'</span><span class="l">fallos</span></div>')+'</div>';
   h+='<div class="vstat '+V.status+'"><span class="vdot"></span><span>'+(V.msg?esc(V.msg):ST[V.status]||"")+'</span>'+(V.heard?'<span class="vheard">«'+esc(V.heard)+'»</span>':'')+'</div>';
-  if(c&&c.kind==="test"){h+='<div class="rv-card"><div class="rv-top"><span class="rv-num">'+(d.num!=null?"Tema "+d.num:esc(d.name))+'</span></div><div class="qtext">'+nl(c.q)+'</div><div class="options'+(V.phase==="a"?" answered":" no-hover")+'">'+
+  if(c&&c.kind==="test"){h+='<div class="rv-card"><div class="rv-top"><span class="rv-num">'+(V.test&&TR?(TR.T.retry?"Falladas · ":"")+"Test "+TR.T.n+" · "+(TR.pg.pos+1)+"/"+TR.T.ids.length+" · ":"")+(d.num!=null?"Tema "+d.num:esc(d.name))+'</span></div><div class="qtext">'+nl(c.q)+'</div><div class="options'+(V.phase==="a"?" answered":" no-hover")+'">'+
       V.order.map((oi,p)=>{let cl="option";if(V.phase==="a")cl+=oi===c.a?" correct":oi===V.chosen?" incorrect":" dim";return '<button class="'+cl+'" data-vo="'+p+'"><span class="letter">'+"abc"[p]+'</span><span class="label">'+nl(c.opts[oi])+'</span></button>'}).join("")+'</div>'+
       (V.phase==="a"&&c.exp?'<div class="explain"><span class="explain-title">Por qué</span>'+nl(c.exp)+'</div>':'')+'</div>'}
   else if(c){h+='<div class="rv-card"><div class="qtext">'+nl(c.q)+'</div>'+(V.phase==="a"?'<div class="answerbox">'+nl(c.ans)+'</div>':'')+'</div>'}
   else h+='<div class="rv-card"><div class="rv-done"><div class="rv-big">🎙</div><p>Di el número del tema que quieres estudiar, por ejemplo «tema diecisiete».</p></div></div>';
   if(c)h+=marksRow(c.id);
-  h+='<div class="vhelp">Responde: <b>A · B · C</b>, <b>1 · 2 · 3</b> o <b>Alfa · Bravo · Charlie</b>'+(SYNC.bargeIn===false?'':', también mientras lee')+'. Comandos: «repite», «salta», «cambia de tema», «pausa». Marcas: «estrella», «marca difícil», «marca fácil», «marca errónea», «marca la anterior».</div>';
+  h+='<div class="vhelp">Responde: <b>A · B · C</b>, <b>1 · 2 · 3</b> o <b>Alfa · Bravo · Charlie</b>'+(SYNC.bargeIn===false?'':', también mientras lee')+'. Comandos: «repite», '+(V.test?"«salta» (en blanco)":"«salta», «cambia de tema»")+', «pausa». Marcas: «estrella», «marca difícil», «marca fácil», «marca errónea», «marca la anterior».</div>';
   h+='<div class="rv-actions"><button class="ghost" id="vExit">Salir</button>'+(V.on?'<button class="next-btn" id="vPause">Pausa</button>':'<button class="next-btn" id="vGo">'+(V.status==="paused"?"Continuar":"Empezar")+'</button>')+'</div></div>';
   box.innerHTML=h;
   $("#vExit").onclick=voiceExit;if($("#vPause"))$("#vPause").onclick=voicePause;if($("#vGo"))$("#vGo").onclick=voiceResume;
@@ -1027,7 +1045,7 @@ async function handleBarge(alts,g){const t=alts[0];V.heard=t;
   const cmd=parseCmd(t);
   if(cmd&&!looksEcho(t)&&cmd!=="explain"){V.gen++;stopBarge();speechSynthesis.cancel();V.reading=false;
     if(cmd==="pause")return voicePause();if(cmd==="exit")return voiceExit();if(cmd==="change"){V.last=V.cur;return voiceAskTema("¿Qué tema quieres?")}
-    if(cmd==="repeat")return voiceAskBarge();if(cmd==="skip"){V.last=V.cur;await say("Saltada.");return voiceNext()}return}
+    if(cmd==="repeat")return voiceAskBarge();if(cmd==="skip"&&V.test)return voiceTestSkip();if(cmd==="skip"){V.last=V.cur;await say("Saltada.");return voiceNext()}return}
   if(looksEcho(t)){renderVoice();return}
   let pos=null;for(const a of alts){if(looksEcho(a))continue;pos=parseAnswer(a);if(pos!=null)break}
   if(pos!=null){V.gen++;speechSynthesis.cancel();return voiceGrade(pos)}
@@ -1117,12 +1135,12 @@ function testSaveProg(){if(!TR)return;TR.pg.ms+=now()-TR.sessStart;TR.sessStart=
 function renderTest(){if(!TR){go("decks");return}const {T,pg}=TR,ids=T.ids,i=Math.min(pg.pos,ids.length-1),cid=ids[i],c=CARDS[cid],ex=pg.mode==="examen";
   const answered=Object.keys(pg.ans).length,ord=pg.order[cid]||[0,1,2],a=pg.ans[cid];
   const reveal=!ex&&a!=null;
-  let h='<div class="rv pad"><div class="tbar"><span class="mono">'+(i+1)+' / '+ids.length+'</span><span>'+answered+' respondidas</span><button class="ghost" id="tGrid">'+(TR.showGrid?"Ocultar mapa":"Mapa")+'</button></div>'+
+  let h='<div class="rv pad"><div class="tbar"><span class="mono">'+(i+1)+' / '+ids.length+'</span><span>'+answered+' respondidas</span><button class="ghost" id="tVoice">🎙 Voz</button><button class="ghost" id="tGrid">'+(TR.showGrid?"Ocultar mapa":"Mapa")+'</button></div>'+
     '<div class="rv-track"><div class="rv-fill" style="width:'+Math.round(100*answered/ids.length)+'%"></div></div>';
   if(TR.showGrid)h+='<div class="tgrid">'+ids.map((id,k)=>{const v=pg.ans[id];let cl="";if(v!=null){cl=v==="b"?"bl":ex?"an":(v===CARDS[id].a?"ok":"ko")}return '<button class="'+cl+(k===i?" cur":"")+'" data-tj="'+k+'">'+(k+1)+'</button>'}).join("")+'</div>';
   if(!c){h+='<div class="rv-card"><p>Esta pregunta ya no existe.</p></div>'}
   else{const d=DECKS[c.did];
-    h+='<div class="rv-card"><div class="rv-top"><span class="rv-num">Test '+T.n+' · '+(d.num!=null?"Tema "+d.num:esc(d.name))+'</span>'+(a==="b"?'<span class="chip past">en blanco</span>':'')+'</div><div class="qtext">'+nl(c.q)+'</div>'+
+    h+='<div class="rv-card"><div class="rv-top"><span class="rv-num">'+(T.retry?"Falladas · ":"")+'Test '+T.n+' · '+(d.num!=null?"Tema "+d.num:esc(d.name))+'</span>'+(a==="b"?'<span class="chip past">en blanco</span>':'')+'</div><div class="qtext">'+nl(c.q)+'</div>'+
       '<div class="options'+(reveal?" answered":"")+'">'+ord.map((oi,p)=>{let cl="option";
         if(reveal){cl+=oi===c.a?" correct":oi===a?" incorrect":" dim"}else if(a===oi)cl+=" picked";
         return '<button class="'+cl+'" data-to="'+oi+'"><span class="letter">'+"abc"[p]+'</span><span class="label">'+nl(c.opts[oi])+'</span></button>'}).join("")+'</div>';
@@ -1136,7 +1154,7 @@ function renderTest(){if(!TR){go("decks");return}const {T,pg}=TR,ids=T.ids,i=Mat
     h+='</div>'}
   h+='</div>';$("#vTest").innerHTML=h;
   const go2=k=>{pg.pos=Math.max(0,Math.min(ids.length-1,k));TR.qStart=now();testSaveProg();renderTest();window.scrollTo(0,0)};
-  $("#tGrid").onclick=()=>{TR.showGrid=!TR.showGrid;renderTest()};
+  $("#tGrid").onclick=()=>{TR.showGrid=!TR.showGrid;renderTest()};$("#tVoice").onclick=voiceStartTest;
   $("#vTest").querySelectorAll("[data-tj]").forEach(b=>b.onclick=()=>{TR.showGrid=false;go2(+b.dataset.tj)});
   if($("#tPrev"))$("#tPrev").onclick=()=>go2(i-1);if($("#tNext"))$("#tNext").onclick=()=>go2(i+1);
   if($("#tBlank"))$("#tBlank").onclick=()=>{pg.ans[cid]="b";if(!ex){testSaveProg();renderTest()}else go2(i+1)};
@@ -1152,20 +1170,25 @@ function finishTest(){const {T,pg}=TR;let ok=0,ko=0,bl=0;const per={};
   T.ids.forEach(id=>{const c=CARDS[id];if(!c)return;const a=pg.ans[id],d=c.did;per[d]=per[d]||{ok:0,ko:0,bl:0};
     if(a==null||a==="b"){bl++;per[d].bl++;return}if(pg.mode==="examen")commitTestAnswer(id,a);if(a===c.a){ok++;per[d].ok++}else{ko++;per[d].ko++}});
   pg.ms+=now()-TR.sessStart;const tot=T.ids.filter(id=>CARDS[id]).length,r={t:now(),ok,ko,bl,nota:notaDe(ok,ko,tot),ms:pg.ms,mode:pg.mode};
-  (TRES.results[T.n]=TRES.results[T.n]||[]).push(r);const ans=pg.ans,order=pg.order;delete TRES.prog[T.n];saveTests();
+  if(!T.retry){(TRES.results[T.n]=TRES.results[T.n]||[]).push(r);delete TRES.prog[T.n]}const ans=pg.ans,order=pg.order;saveTests();
   TR={T,result:r,per,ans,order};go("test")}
 function renderTestResult(){const {T,result:r,per,ans}=TR;
   const fails=T.ids.filter(id=>CARDS[id]&&ans[id]!=null&&ans[id]!=="b"&&ans[id]!==CARDS[id].a);
-  let h='<div class="rv pad"><div class="rv-card"><div class="rv-done"><span class="eyebrow">Test '+T.n+' · nota</span><div class="rv-big" style="font-size:3rem;color:'+(r.nota>=5?"var(--ok)":"var(--ko)")+'">'+fmtNota(r.nota)+'</div>'+
+  let h='<div class="rv pad"><div class="rv-card"><div class="rv-done"><span class="eyebrow">'+(T.retry?"Falladas · ":"")+'Test '+T.n+' · nota</span><div class="rv-big" style="font-size:3rem;color:'+(r.nota>=5?"var(--ok)":"var(--ko)")+'">'+fmtNota(r.nota)+'</div>'+
     '<p>'+r.ok+' aciertos · '+r.ko+' fallos · '+r.bl+' en blanco · '+Math.round(r.ms/60000)+' min</p><p style="font-size:.85rem">Fórmula: (aciertos − fallos × 0,5) / '+T.ids.length+' × 10. Las respuestas ya cuentan como estudiadas en su tema.</p></div></div>'+
     '<div class="sec" style="border-radius:12px;border:1px solid var(--rv-border)"><div class="pad"><h3>Por tema</h3><div class="tblwrap"><table class="plan"><thead><tr><th>Tema</th><th style="text-align:right">Bien</th><th style="text-align:right">Mal</th><th style="text-align:right">Blanco</th></tr></thead><tbody>'+
     Object.entries(per).map(([d,x])=>[DECKS[d],x]).filter(z=>z[0]).sort((a,b)=>(b[1].ko-a[1].ko)||((a[0].num??0)-(b[0].num??0))).map(([d,x])=>'<tr><td>'+(d.num!=null?"T"+d.num+" · ":"")+esc(d.name)+'</td><td class="num good">'+x.ok+'</td><td class="num bad">'+x.ko+'</td><td class="num">'+x.bl+'</td></tr>').join("")+'</tbody></table></div></div></div>';
   if(fails.length)h+='<div class="sec" style="border-radius:12px;border:1px solid var(--rv-border)"><div class="pad"><h3>Falladas ('+fails.length+')</h3><div class="qlist">'+fails.map((id,k)=>{const c=CARDS[id];
       return '<div class="mitem" style="padding-inline:0"><button class="mq" data-mopen><small>Tema '+(DECKS[c.did].num??"")+' · respondiste: '+esc(c.opts[ans[id]])+'</small><span>'+esc(c.q)+'</span><span class="ma">'+nl(c.opts[c.a])+(c.exp?'<em>'+nl(c.exp)+'</em>':'')+'</span></button>'+marksRow(id)+'</div>'}).join("")+'</div></div></div>';
-  h+='<div class="rv-actions"><button class="ghost" id="tBack">Volver a los test</button><button class="next-btn" id="tAgain">Repetir test</button></div></div>';
+  if(fails.length)h+='<button class="bigbtn" id="tFails" style="align-self:center">Repetir solo las falladas ('+fails.length+')</button>';
+  h+='<div class="rv-actions"><button class="ghost" id="tBack">Volver a los test</button><button class="next-btn" id="tAgain">'+(T.retry?"Repetir estas "+T.ids.length:"Repetir test")+'</button></div></div>';
   $("#vTest").innerHTML=h;
   $("#vTest").querySelectorAll("[data-mopen]").forEach(b=>b.onclick=()=>b.parentElement.classList.toggle("open"));
-  $("#tBack").onclick=()=>{TR=null;go("decks")};$("#tAgain").onclick=()=>{TR=null;startTest(true)}}
+  $("#tBack").onclick=()=>{TR=null;go("decks")};$("#tAgain").onclick=()=>{if(T.retry)startRetry(T,T.ids);else{TR=null;startTest(true)}};
+  if($("#tFails"))$("#tFails").onclick=()=>startRetry(T,fails)}
+function startRetry(T0,ids){const order={};ids.forEach(id=>order[id]=shuffle3());
+  const pg={mode:CFG.testMode||"examen",ans:{},order,pos:0,ms:0,start:now(),done:{}};
+  TR={T:{n:T0.n,ids:ids.slice(),retry:true},pg,qStart:now(),sessStart:now(),showGrid:false};go("test");window.scrollTo(0,0)}
 /* ---------- estadísticas ---------- */
 const COL={n:"var(--new)",l:"var(--learn)",r:"var(--rev)",y:"var(--young)",m:"var(--mature)"};
 function fillDeckSelect(){$("#statDeck").innerHTML='<option value="all">Todos los temas</option>'+deckList().map(d=>'<option value="'+d.id+'">'+(d.num!=null?"T"+d.num+" · ":"")+esc(d.name)+'</option>').join("");
