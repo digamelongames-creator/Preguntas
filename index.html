@@ -974,12 +974,13 @@ async function voiceAskTema(q){if(V.test){await say("En el test no se cambia de 
   voiceDeck(d.id)}
 async function voiceDeck(did){V.did=did;const d=DECKS[did],k=counts(did),sum=k.n+k.l+k.r;
   if(!sum){const nx=nextStudy(did);return voiceAskTema("El tema "+(d.num??d.name)+" no tiene preguntas pendientes"+(nx!=null?"; te toca "+relDay(nx):"")+". ¿Qué otro tema quieres?")}
-  V.done=0;V.ok=0;V.last=null;await say("Tema "+(d.num!=null?d.num+", ":"")+d.name+". Tienes "+sum+" preguntas. Responde A, B o C, uno, dos o tres, o alfa, bravo o charlie.");voiceNext()}
+  V.done=0;V.ok=0;V.last=null;V.cur=null;V.phase="intro";V.introTxt=(d.num!=null?"Tema "+d.num+" · ":"")+d.name+" · "+sum+" preguntas";renderVoice();const g=V.gen;await say("Tema "+(d.num!=null?d.num+", ":"")+d.name+". Tienes "+sum+" preguntas.");if(V&&V.on&&V.gen===g)voiceNext()}
 function voiceStartTest(){if(!TR||TR.result)return;if(!voiceOK()){toast("Este navegador no permite estudiar por voz; usa Chrome");return}
   testSaveProg();V={gen:0,on:true,did:null,test:true,status:"idle",heard:"",cur:null,order:[0,1,2],last:null,done:0,ok:0,phase:"q",lock:null,msg:""};
   try{navigator.wakeLock&&navigator.wakeLock.request("screen").then(l=>{if(V)V.lock=l}).catch(()=>{})}catch(e){}
   go("voice");speechSynthesis.getVoices();setTimeout(async()=>{if(!V||!V.on)return;const ex=TR.pg.mode==="examen",left=TR.T.ids.filter(id=>TR.pg.ans[id]==null&&CARDS[id]).length;
-    await say((TR.T.retry?"Repaso de falladas del test ":"Test ")+TR.T.n+". Te quedan "+left+" preguntas."+(ex?" Modo examen: no te diré si aciertas hasta entregar.":"")+" Responde A, B o C. Di salta para dejarla en blanco.");voiceNext()},250)}
+    V.phase="intro";V.introTxt=(TR.T.retry?"Falladas · ":"")+"Test "+TR.T.n+" · quedan "+left+" preguntas";renderVoice();const g=V.gen;
+    await say((TR.T.retry?"Repaso de falladas del test ":"Test ")+TR.T.n+". Te quedan "+left+" preguntas."+(ex?" Modo examen: no te diré si aciertas hasta entregar.":""));if(V&&V.on&&V.gen===g)voiceNext()},250)}
 function voiceTestNext(){const {T,pg}=TR,ids=T.ids;let k=-1;
   for(let j=0;j<ids.length;j++){const q=(pg.pos+j)%ids.length;if(pg.ans[ids[q]]==null&&CARDS[ids[q]]&&CARDS[ids[q]].kind==="test"){k=q;break}}
   if(k<0){voiceStop();finishTest();try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance("Test terminado. Tu nota es "+fmtNota(TR.result.nota)+".");u.lang="es-ES";speechSynthesis.speak(u)}catch(e){}return}
@@ -1018,7 +1019,7 @@ async function voiceBasic(cid){V.cur=cid;V.phase="q";renderVoice();const c=CARDS
   await hear(null,2);V.phase="a";renderVoice();await say("La respuesta es: "+c.ans+". ¿La sabías? Di sí o no.");
   const alts=await hear("¿Sí o no?",2);const yes=alts&&/\b(si|sí|sabia|bien|correcto)\b/.test(normTxt(alts.join(" ")));
   commit(cid,yes?3:1,8000,null);V.done++;if(yes)V.ok++;voiceNext()}
-function voiceSkipFeedback(){if(!V||V.phase!=="a")return;V.gen++;stopBarge();try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();V.on=true;V.msg="";V.reading=false;voiceNext()}
+function voiceSkipFeedback(){if(!V||(V.phase!=="a"&&V.phase!=="intro"))return;V.gen++;stopBarge();try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();V.on=true;V.msg="";V.reading=false;voiceNext()}
 function voicePause(){if(!V)return;stopBarge();V.on=false;V.gen++;try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();V.status="paused";renderVoice()}
 function voiceResume(){if(!V)return;V.on=true;V.gen++;V.msg="";if(V.phase==="q"&&V.cur){renderVoice();voiceAsk()}else if((V.did||V.test)&&V.phase!=="tema")voiceNext();else voiceAskTema("¿Qué tema quieres estudiar?")}
 function voiceExit(){if(V&&V.test){voiceStop();if(TR&&!TR.result){TR.sessStart=now();TR.qStart=now();go("test")}else go("decks");return}const d=V&&V.did;voiceStop();go(d?"overview":"decks",d?{deck:d}:undefined)}
@@ -1030,13 +1031,14 @@ function renderVoice(){const box=$("#vVoice");if(!box||view!=="voice"||!V)return
       V.order.map((oi,p)=>{let cl="option";if(V.phase==="a")cl+=oi===c.a?" correct":oi===V.chosen?" incorrect":" dim";return '<button class="'+cl+'" data-vo="'+p+'"><span class="letter">'+"abc"[p]+'</span><span class="label">'+nl(c.opts[oi])+'</span></button>'}).join("")+'</div>'+
       (V.phase==="a"&&c.exp?'<div class="explain"><span class="explain-title">Por qué</span>'+nl(c.exp)+'</div>':'')+'</div>'}
   else if(c){h+='<div class="rv-card"><div class="qtext">'+nl(c.q)+'</div>'+(V.phase==="a"?'<div class="answerbox">'+nl(c.ans)+'</div>':'')+'</div>'}
+  else if(V.phase==="intro")h+='<div class="rv-card"><div class="rv-done"><div class="rv-big">🎙</div><p>'+esc(V.introTxt||"")+'</p></div></div>';
   else h+='<div class="rv-card"><div class="rv-done"><div class="rv-big">🎙</div><p>Di el número del tema que quieres estudiar, por ejemplo «tema diecisiete».</p></div></div>';
   if(c)h+=marksRow(c.id);
   h+='<div class="vhelp">Responde: <b>A · B · C</b>, <b>1 · 2 · 3</b> o <b>Alfa · Bravo · Charlie</b>'+(SYNC.bargeIn===false?'':', también mientras lee')+'. Comandos: «repite», '+(V.test?"«salta» (en blanco)":"«salta», «cambia de tema»")+', «pausa». Marcas: «estrella», «marca difícil», «marca fácil», «marca errónea», «marca la anterior».</div>';
-  h+='<div class="rv-actions"><button class="ghost" id="vExit">Salir</button>'+'<span class="vbtns">'+(V.on?'<button class="'+(V.phase==="a"?"ghost":"next-btn")+'" id="vPause">Pausa</button>':'<button class="'+(V.phase==="a"?"ghost":"next-btn")+'" id="vGo">'+(V.status==="paused"?"Continuar":"Empezar")+'</button>')+(V.phase==="a"&&V.cur?'<button class="next-btn" id="vNext">Siguiente ›</button>':'')+'</span></div></div>';
+  h+='<div class="rv-actions"><button class="ghost" id="vExit">Salir</button>'+'<span class="vbtns">'+(V.on?'<button class="'+(V.phase==="a"||V.phase==="intro"?"ghost":"next-btn")+'" id="vPause">Pausa</button>':'<button class="'+(V.phase==="a"||V.phase==="intro"?"ghost":"next-btn")+'" id="vGo">'+(V.status==="paused"?"Continuar":"Empezar")+'</button>')+((V.phase==="a"&&V.cur)||V.phase==="intro"?'<button class="next-btn" id="vNext">Siguiente ›</button>':'')+'</span></div></div>';
   box.innerHTML=h;
   $("#vExit").onclick=voiceExit;if($("#vPause"))$("#vPause").onclick=voicePause;if($("#vGo"))$("#vGo").onclick=voiceResume;if($("#vNext"))$("#vNext").onclick=voiceSkipFeedback;
-  box.querySelectorAll("[data-vo]").forEach(b=>b.onclick=()=>{if(V.phase==="q"&&V.on){V.gen++;try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();voiceGrade(+b.dataset.vo)}})}
+  box.querySelectorAll("[data-vo]").forEach(b=>b.onclick=()=>{if(V.phase==="a")return voiceSkipFeedback();if(V.phase==="q"&&V.on){V.gen++;try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();voiceGrade(+b.dataset.vo)}})}
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&V&&V.on)voicePause()});
 
 
