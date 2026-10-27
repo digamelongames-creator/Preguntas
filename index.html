@@ -618,10 +618,10 @@ function nextCard(did,avoid){if(did==="_marks")return nextMarked(avoid);const n=
   if(!p)p=first(ahead);
   if(!p)p=learnNow[0]||rev[0]||nw[0]||ahead[0]||null;
   return p}
-function commit(cid,ease,ms,o){const c=CARDS[cid],did=c.did,n=now(),st=ST[did]||(ST[did]={}),before=st[cid]?Object.assign({},st[cid]):null;
+function commit(cid,ease,ms,o,tt){const c=CARDS[cid],did=c.did,n=now(),st=ST[did]||(ST[did]={}),before=st[cid]?Object.assign({},st[cid]):null;
   const kind=before?.ty==="review"?1:before?.ty==="relearn"?2:0;
   const ns=sched(before,ease,n,did);if(!before)ns.intro=dayNum(n);st[cid]=ns;
-  const ds=dayStr(dayNum(n));(LOG[ds]=LOG[ds]||[]).push({c:cid,d:did,e:ease,k:kind,t:n,ms:Math.max(1000,Math.min(120000,ms||0)),i:ns.ty==="review"?ns.ivl:0,...(o!=null?{o}:{})});
+  const ds=dayStr(dayNum(n));(LOG[ds]=LOG[ds]||[]).push({c:cid,d:did,e:ease,k:kind,t:n,ms:Math.max(1000,Math.min(120000,ms||0)),i:ns.ty==="review"?ns.ivl:0,...(o!=null?{o}:{}),...(tt!=null?{tt:Math.max(1000,Math.min(120000,ms||0),Math.min(600000,tt))}:{})});
   saveSrs(did);saveLog(ds);return{before,ds}}
 
 /* ---------- navegación ---------- */
@@ -843,7 +843,7 @@ function choose(oi){if(phase!=="q")return;const c=CARDS[cur];chosen=oi;phase="a"
   if(oi===c.a){grade=preGrade(elapsed);auto=grade}else{grade=1;auto=null}renderCard()}
 function next(){if(phase!=="a"||!cur)return;const c=CARDS[cur],ok=c.kind==="test"?chosen===c.a:grade>1,s0=stOf(cur);
   const nextTxt=ivlText(s0,grade,c.did),ty0=typeOf(s0);
-  const r=commit(cur,grade,elapsed,c.kind==="test"?chosen:null);undo={cid:cur,before:r.before,ds:r.ds,ok};
+  const r=commit(cur,grade,elapsed,c.kind==="test"?chosen:null,now()-shownAt);undo={cid:cur,before:r.before,ds:r.ds,ok};
   sess.hist.push({cid:cur,order:order.slice(),chosen,grade,ms:elapsed,next:nextTxt,ty:ty0});
   sess.done++;ok?sess.ok++:sess.bad++;sess.last=cur;showNext()}
 function goBack(){if(!sess.hist.length)return;if(hpos===-1)hpos=sess.hist.length-1;else if(hpos>0)hpos--;else return;renderCard();window.scrollTo(0,0)}
@@ -1287,6 +1287,7 @@ function donut(parts){const r=46,C=2*Math.PI*r,tot=parts.reduce((s,p)=>s+p[2],0)
   parts.forEach(([c,,v])=>{if(!v)return;const len=v/tot*C;g+='<circle cx="65" cy="65" r="'+r+'" fill="none" stroke="'+c+'" stroke-width="18" stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 65 65)"/>';off+=len});
   g+='<text x="65" y="63" text-anchor="middle" style="font-size:22px;fill:var(--fg);font-family:var(--f-num)">'+tot+'</text><text x="65" y="80" text-anchor="middle" style="font-size:10px;fill:var(--muted)">preguntas</text>';
   return '<svg viewBox="0 0 130 130" role="img">'+g+'</svg>'}
+const ttOf=r=>r.tt??r.ms,mins=ms=>Math.round(ms/60000)+" min";
 const kpi=(l,v,sub)=>'<div class="kpi"><span>'+l+'</span><b>'+v+'</b>'+(sub?'<em>'+sub+'</em>':'')+'</div>';
 function renderStats(){fillDeckSelect();
   $("#periods").innerHTML=[[30,"1 mes"],[90,"3 meses"],[365,"1 año"]].map(([v,l])=>'<button class="seg'+(period===v?" on":"")+'" data-p="'+v+'">'+l+'</button>').join("");
@@ -1295,10 +1296,10 @@ function renderStats(){fillDeckSelect();
   const logs=allLogs().filter(r=>idset.has(r.d)&&CARDS[r.c]);
   const cids=[];ids.forEach(id=>cids.push(...(DCARDS[id]||[])));
   let h="";
-  const today=logs.filter(r=>dayNum(r.t)===t),tOk=today.filter(r=>r.e>1).length,tMs=today.reduce((s,r)=>s+r.ms,0);
+  const today=logs.filter(r=>dayNum(r.t)===t),tOk=today.filter(r=>r.e>1).length,tMs=today.reduce((s,r)=>s+r.ms,0),tTt=today.reduce((s,r)=>s+ttOf(r),0);
   let due=0;ids.forEach(id=>{const k=counts(id);due+=k.n+k.l+k.r});
-  h+='<div class="sec pad"><h3>Hoy</h3><p class="sub">'+(today.length?'Respondidas '+today.length+' preguntas en '+Math.max(1,Math.round(tMs/60000))+' min ('+dec(tMs/today.length/1000)+' s por pregunta)':'Todavía no has estudiado hoy')+'</p><div class="kpis">'+
-    kpi("Pendientes hoy",due)+kpi("Acierto hoy",today.length?pct(tOk,today.length)+" %":"—",today.length?(today.length-tOk)+" fallos":"")+kpi("Nuevas / repasos",today.filter(r=>r.k===0).length+" / "+today.filter(r=>r.k>0).length)+'</div></div>';
+  h+='<div class="sec pad"><h3>Hoy</h3><p class="sub">'+(today.length?'Respondidas '+today.length+' preguntas':'Todavía no has estudiado hoy')+'</p><div class="kpis">'+
+    kpi("Pendientes hoy",due)+kpi("Acierto hoy",today.length?pct(tOk,today.length)+" %":"—",today.length?(today.length-tOk)+" fallos":"")+kpi("Nuevas / repasos",today.filter(r=>r.k===0).length+" / "+today.filter(r=>r.k>0).length)+(today.length?kpi("Tiempo respondiendo",mins(tMs),dec(tMs/today.length/1000)+" s por pregunta")+kpi("Tiempo total",mins(tTt),dec(tTt/today.length/1000)+" s por pregunta · con explicaciones"):"")+'</div></div>';
   const daysSet=new Set(logs.map(r=>dayNum(r.t)));let streak=0,dd=daysSet.has(t)?t:t-1;while(daysSet.has(dd)){streak++;dd--}
   const d30=[...daysSet].filter(x=>x>t-30).length;
   if(all){h+='<div class="sec pad"><h3>Planificación por tema</h3><p class="sub">Cuándo toca cada tema y cuándo lo estudiaste por última vez</p><div class="tblwrap"><table class="plan"><thead><tr><th>Tema</th><th>Próximo</th><th>Último</th><th style="text-align:right">Acierto</th></tr></thead><tbody>'+
@@ -1326,11 +1327,11 @@ function renderStats(){fillDeckSelect();
   h+='<div class="sec pad"><h3>Calendario</h3><p class="sub">Días en que has estudiado (últimos 6 meses); toca un día para ver el detalle</p><div class="tblwrap"><svg class="chart" id="heat" viewBox="0 0 '+(18+WEEKS*12.6)+' 104" style="min-width:300px">'+hm+'</svg></div><div class="heatinfo" id="heatInfo">'+d30+' días con estudio en los últimos 30 · racha de '+streak+'</div></div>';
   const bucket=period<=90?1:7,nb=Math.ceil(period/bucket),RS=[0,1,2].map(()=>new Array(nb).fill(0)),plogs=logs.filter(r=>dayNum(r.t)>t-period);
   plogs.forEach(r=>{const i=nb-1-Math.floor((t-dayNum(r.t))/bucket);if(i>=0)RS[r.k][i]++});
-  const pdays=new Set(plogs.map(r=>dayNum(r.t))).size,pms=plogs.reduce((s,r)=>s+r.ms,0);
+  const pdays=new Set(plogs.map(r=>dayNum(r.t))).size,pms=plogs.reduce((s,r)=>s+r.ms,0),ptt=plogs.reduce((s,r)=>s+ttOf(r),0);
   h+='<div class="sec pad"><h3>Repasos</h3><p class="sub">Respuestas por '+(bucket===1?"día":"semana")+' en el periodo elegido</p>'+
     bars([RS[0],RS[2],RS[1]],[COL.n,COL.l,COL.r],RS[0].map((_,i)=>bucket===1?fmtDay(t-(nb-1-i)):"semana de "+fmtDay(t-(nb-1-i)*7)),{tick:i=>(nb-1-i)%Math.ceil(nb/5)===0,tickLabel:i=>{const ago=(nb-1-i)*bucket;return ago===0?"hoy":"-"+ago+"d"}})+
     legend([[COL.n,"Aprendizaje"],[COL.l,"Reaprendizaje"],[COL.r,"Repaso"]])+
-    '<div class="kpis" style="margin-top:12px">'+kpi("Días estudiados",pdays+" de "+period,pct(pdays,period)+" %")+kpi("Total respuestas",plogs.length)+kpi("Media por día estudiado",pdays?dec(plogs.length/pdays):"0")+kpi("Tiempo total",Math.round(pms/60000)+" min")+'</div></div>';
+    '<div class="kpis" style="margin-top:12px">'+kpi("Días estudiados",pdays+" de "+period,pct(pdays,period)+" %")+kpi("Total respuestas",plogs.length)+kpi("Media por día estudiado",pdays?dec(plogs.length/pdays):"0")+kpi("Tiempo respondiendo",mins(pms))+kpi("Tiempo total",mins(ptt),"con explicaciones")+'</div></div>';
   let cn=0,cl=0,cy=0,cm=0,sIvl=0,sEase=0,nRev=0,laps=0;
   cids.forEach(id=>{const s=stOf(id);if(!s){cn++;return}laps+=s.lap||0;if(isLearnT(s.ty))cl++;else if(s.ty==="review"){nRev++;sIvl+=s.ivl;sEase+=s.ease;s.ivl<21?cy++:cm++}});
   const ct=cids.length,r30=logs.filter(r=>r.k===1&&dayNum(r.t)>t-30),ret=r30.length?pct(r30.filter(r=>r.e>1).length,r30.length)+" %":"—";
