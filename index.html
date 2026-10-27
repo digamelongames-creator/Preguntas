@@ -237,7 +237,7 @@ main{max-width:760px;margin:0 auto;padding-bottom:110px}
 .gbtn small{font-family:var(--f-rvm);font-size:.72rem;font-weight:500;color:var(--rv-muted)}
 .gbtn.on{border-color:var(--rv-accent);background:var(--rv-accent-soft);color:var(--rv-accent)}
 .gbtn.g1.on{border-color:var(--ko);background:var(--ko-bg);color:var(--ko)}
-.rv-actions{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.rv-actions{display:flex;justify-content:space-between;align-items:center;gap:10px}.rv-actions .vbtns{display:flex;gap:8px;align-items:center}
 .ghost{font-family:var(--f-rv);font-size:.88rem;font-weight:600;color:var(--rv-muted);background:none;border:none;padding:6px 4px}
 .ghost:hover{color:var(--rv-text)}
 .next-btn{font-family:var(--f-rv);font-weight:600;font-size:1rem;padding:12px 22px;border-radius:10px;border:none;background:var(--rv-accent);color:var(--rv-accent-ink)}
@@ -984,13 +984,13 @@ function voiceTestNext(){const {T,pg}=TR,ids=T.ids;let k=-1;
   for(let j=0;j<ids.length;j++){const q=(pg.pos+j)%ids.length;if(pg.ans[ids[q]]==null&&CARDS[ids[q]]&&CARDS[ids[q]].kind==="test"){k=q;break}}
   if(k<0){voiceStop();finishTest();try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance("Test terminado. Tu nota es "+fmtNota(TR.result.nota)+".");u.lang="es-ES";speechSynthesis.speak(u)}catch(e){}return}
   pg.pos=k;const cid=ids[k];V.cur=cid;V.phase="q";V.order=pg.order[cid]||(pg.order[cid]=shuffle3());V.chosen=null;V.heard="";V.t0=null;V.tq=now();renderVoice();voiceAsk()}
-async function voiceTestGrade(pos){stopBarge();V.reading=false;const {pg}=TR,cid=V.cur,c=CARDS[cid],oi=V.order[pos],ok=oi===c.a,ms=Math.min(120000,now()-(V.t0||V.tq||now())),ex=pg.mode==="examen";
+async function voiceTestGrade(pos){stopBarge();V.reading=false;const gg=V.gen,live=()=>V&&V.on&&V.gen===gg;const {pg}=TR,cid=V.cur,c=CARDS[cid],oi=V.order[pos],ok=oi===c.a,ms=Math.min(120000,now()-(V.t0||V.tq||now())),ex=pg.mode==="examen";
   pg.ans[cid]=oi;V.chosen=oi;V.lastDone=cid;V.last=cid;V.done++;if(ok)V.ok++;
   if(!ex&&!pg.done[cid]){commit(cid,ok?preGrade(ms):1,ms,oi);pg.done[cid]=1}
   testSaveProg();
-  if(ex){renderVoice();await say("Anotada la "+"ABC"[pos]+".")}
-  else{V.phase="a";renderVoice();const right="ABC"[V.order.indexOf(c.a)];await say(ok?"Correcto.":"Incorrecto. La correcta es la "+right+": "+c.opts[c.a]+".");if(c.exp)await say(c.exp)}
-  await new Promise(r=>setTimeout(r,400));if(V&&V.on)voiceNext()}
+  if(ex){V.phase="a";renderVoice();await say("Anotada la "+"ABC"[pos]+".")}
+  else{V.phase="a";renderVoice();const right="ABC"[V.order.indexOf(c.a)];await say(ok?"Correcto.":"Incorrecto. La correcta es la "+right+": "+c.opts[c.a]+".");if(live()&&c.exp)await say(c.exp)}
+  if(!live())return;await new Promise(r=>setTimeout(r,400));if(live())voiceNext()}
 async function voiceTestSkip(){const cid=V.cur;if(cid)TR.pg.ans[cid]="b";V.last=cid;testSaveProg();await say("En blanco.");voiceNext()}
 async function voiceNext(){if(!V||!V.on)return;if(V.test)return voiceTestNext();const cid=nextCard(V.did,V.last);
   if(!cid){const d=DECKS[V.did];return voiceAskTema("Has terminado el tema "+(d.num??d.name)+". "+V.ok+" aciertos de "+V.done+". ¿Quieres otro tema? Di el número o di salir.")}
@@ -1007,17 +1007,18 @@ async function voiceAnswer(){let miss=0;const g=V.gen;
     let pos=null;for(const a of alts){if(looksEcho(a))continue;pos=parseAnswer(a);if(pos!=null)break}
     if(pos==null){if(alts.every(a=>looksEcho(a)))continue;await say("No te he entendido. Di A, B o C.");continue}
     return voiceGrade(pos)}}
-async function voiceGrade(pos){if(V.test)return voiceTestGrade(pos);stopBarge();V.reading=false;const c=CARDS[V.cur],oi=V.order[pos],ok=oi===c.a,ms=now()-(V.t0||V.tq||now());
+async function voiceGrade(pos){if(V.test)return voiceTestGrade(pos);stopBarge();V.reading=false;const gg=V.gen,live=()=>V&&V.on&&V.gen===gg;const c=CARDS[V.cur],oi=V.order[pos],ok=oi===c.a,ms=now()-(V.t0||V.tq||now());
   const g=ok?preGrade(ms):1;V.chosen=oi;V.phase="a";V.lastDone=V.cur;const r=commit(V.cur,g,ms,oi);V.done++;if(ok)V.ok++;V.last=V.cur;renderVoice();
   const right="ABC"[V.order.indexOf(c.a)];
-  await say(ok?"Correcto.":"Incorrecto. La correcta es la "+right+": "+c.opts[c.a]+".");
-  if(c.exp)await say(c.exp);
-  const rf=REF[c.did]?.items?.[c.id];if(rf)await say("Refuerzo: "+rf.text);
-  await new Promise(r=>setTimeout(r,500));voiceNext()}
+  await say(ok?"Correcto.":"Incorrecto. La correcta es la "+right+": "+c.opts[c.a]+".");if(!live())return;
+  if(c.exp)await say(c.exp);if(!live())return;
+  const rf=REF[c.did]?.items?.[c.id];if(rf)await say("Refuerzo: "+rf.text);if(!live())return;
+  await new Promise(r=>setTimeout(r,500));if(live())voiceNext()}
 async function voiceBasic(cid){V.cur=cid;V.phase="q";renderVoice();const c=CARDS[cid];await say(c.q+". Di la respuesta en voz alta y luego di ya.");
   await hear(null,2);V.phase="a";renderVoice();await say("La respuesta es: "+c.ans+". ¿La sabías? Di sí o no.");
   const alts=await hear("¿Sí o no?",2);const yes=alts&&/\b(si|sí|sabia|bien|correcto)\b/.test(normTxt(alts.join(" ")));
   commit(cid,yes?3:1,8000,null);V.done++;if(yes)V.ok++;voiceNext()}
+function voiceSkipFeedback(){if(!V||V.phase!=="a")return;V.gen++;stopBarge();try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();V.on=true;V.msg="";V.reading=false;voiceNext()}
 function voicePause(){if(!V)return;stopBarge();V.on=false;V.gen++;try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();V.status="paused";renderVoice()}
 function voiceResume(){if(!V)return;V.on=true;V.gen++;V.msg="";if(V.phase==="q"&&V.cur){renderVoice();voiceAsk()}else if((V.did||V.test)&&V.phase!=="tema")voiceNext();else voiceAskTema("¿Qué tema quieres estudiar?")}
 function voiceExit(){if(V&&V.test){voiceStop();if(TR&&!TR.result){TR.sessStart=now();TR.qStart=now();go("test")}else go("decks");return}const d=V&&V.did;voiceStop();go(d?"overview":"decks",d?{deck:d}:undefined)}
@@ -1032,9 +1033,9 @@ function renderVoice(){const box=$("#vVoice");if(!box||view!=="voice"||!V)return
   else h+='<div class="rv-card"><div class="rv-done"><div class="rv-big">🎙</div><p>Di el número del tema que quieres estudiar, por ejemplo «tema diecisiete».</p></div></div>';
   if(c)h+=marksRow(c.id);
   h+='<div class="vhelp">Responde: <b>A · B · C</b>, <b>1 · 2 · 3</b> o <b>Alfa · Bravo · Charlie</b>'+(SYNC.bargeIn===false?'':', también mientras lee')+'. Comandos: «repite», '+(V.test?"«salta» (en blanco)":"«salta», «cambia de tema»")+', «pausa». Marcas: «estrella», «marca difícil», «marca fácil», «marca errónea», «marca la anterior».</div>';
-  h+='<div class="rv-actions"><button class="ghost" id="vExit">Salir</button>'+(V.on?'<button class="next-btn" id="vPause">Pausa</button>':'<button class="next-btn" id="vGo">'+(V.status==="paused"?"Continuar":"Empezar")+'</button>')+'</div></div>';
+  h+='<div class="rv-actions"><button class="ghost" id="vExit">Salir</button>'+'<span class="vbtns">'+(V.on?'<button class="'+(V.phase==="a"?"ghost":"next-btn")+'" id="vPause">Pausa</button>':'<button class="'+(V.phase==="a"?"ghost":"next-btn")+'" id="vGo">'+(V.status==="paused"?"Continuar":"Empezar")+'</button>')+(V.phase==="a"&&V.cur?'<button class="next-btn" id="vNext">Siguiente ›</button>':'')+'</span></div></div>';
   box.innerHTML=h;
-  $("#vExit").onclick=voiceExit;if($("#vPause"))$("#vPause").onclick=voicePause;if($("#vGo"))$("#vGo").onclick=voiceResume;
+  $("#vExit").onclick=voiceExit;if($("#vPause"))$("#vPause").onclick=voicePause;if($("#vGo"))$("#vGo").onclick=voiceResume;if($("#vNext"))$("#vNext").onclick=voiceSkipFeedback;
   box.querySelectorAll("[data-vo]").forEach(b=>b.onclick=()=>{if(V.phase==="q"&&V.on){V.gen++;try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();voiceGrade(+b.dataset.vo)}})}
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&V&&V.on)voicePause()});
 
