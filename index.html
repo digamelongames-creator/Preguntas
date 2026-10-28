@@ -202,6 +202,9 @@ main{max-width:760px;margin:0 auto;padding-bottom:110px}
 .mq .ma em{display:block;font-style:normal;color:var(--muted);margin-top:4px}
 .mq .ma b{display:block;font-weight:500;color:var(--warn);margin-top:4px}
 .mitem.open .ma{display:block}
+.mfoot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between}
+.medit{display:inline-flex;align-items:center;gap:4px;color:var(--fg)}
+.medit svg{width:14px;height:14px;fill:currentColor}
 .tnota{width:120px;text-align:right;font-family:var(--f-num);font-size:15px;padding-right:4px}
 .tnota b{font-weight:500}.tnota b.z{color:var(--zero)}
 .tbar{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.88rem;color:var(--rv-muted)}
@@ -718,12 +721,12 @@ function cardForm(did,cid){const c=cid?CARDS[cid]:null,kind=c?c.kind:"test";
   const cu=d=>CUSTOM[d]||(CUSTOM[d]={cards:{},edits:{},hidden:[]});
   if(c)s.querySelector("[data-del]").onclick=()=>confirmBox("¿Borrar esta pregunta y su historial?","Borrar",()=>{const d=c.did,x=cu(d);
     if(x.cards[cid])delete x.cards[cid];else{x.hidden=x.hidden||[];x.hidden.push(cid)}
-    if(ST[d])delete ST[d][cid];saveSrs(d);saveCustom(d);buildIndex();if(view==="review")showNext();toast("Pregunta borrada")});
+    if(ST[d])delete ST[d][cid];saveSrs(d);saveCustom(d);buildIndex();if(view==="review")showNext();if(view==="marks")renderMarks();toast("Pregunta borrada")});
   s.querySelector("[data-ok]").onclick=()=>{const q=$("#cfQ").value.trim(),d=$("#cfD").value;if(!q){toast("Escribe la pregunta");return}
     let data;if(k==="test"){const op=[0,1,2].map(i=>$("#cfO"+i).value.trim());if(op.some(x=>!x)){toast("Rellena las tres opciones");return}
       data={kind:"test",q,opts:op,a:+(s.querySelector('input[name=cfA]:checked')?.value||0),exp:$("#cfE").value.trim()}}
     else{const r=$("#cfR").value.trim();if(!r){toast("Escribe la respuesta");return}data={kind:"basic",q,ans:r}}
-    if(c){const x=cu(c.did);if(x.cards[cid])Object.assign(x.cards[cid],data);else{x.edits=x.edits||{};x.edits[cid]=data}saveCustom(c.did);buildIndex();closeSheet();if(view==="review"){cur=cid;renderCard()}toast("Pregunta guardada")}
+    if(c){const x=cu(c.did);if(x.cards[cid])Object.assign(x.cards[cid],data);else{x.edits=x.edits||{};x.edits[cid]=data}saveCustom(c.did);buildIndex();closeSheet();if(view==="review"){cur=cid;renderCard()}if(view==="marks")renderMarks();toast("Pregunta guardada")}
     else{const id="u"+uid();cu(d).cards[id]=Object.assign({id,custom:true},data);saveCustom(d);buildIndex();
       $("#cfQ").value="";[0,1,2].forEach(i=>{const e=$("#cfO"+i);if(e)e.value=""});if($("#cfE"))$("#cfE").value="";if($("#cfR"))$("#cfR").value="";$("#cfQ").focus();toast("Pregunta añadida");if(view==="decks")renderDecks()}}}
 
@@ -1097,7 +1100,7 @@ let MK={tag:"all",did:"all"};
 function nextMarked(avoid){const seen=new Set(sess.hist.map(h=>h.cid));const ids=markedIds(MK.tag,MK.did).filter(id=>!seen.has(id));
   return ids.sort((a,b)=>(MARKS[a].ts||0)-(MARKS[b].ts||0))[0]||null}
 function marksCounts(){const seen=new Set(sess.hist.map(h=>h.cid));const n=markedIds(MK.tag,MK.did).filter(id=>!seen.has(id)).length;return{n:0,l:0,r:n,total:n,newLeft:0}}
-function renderMarks(){const all=markedIds("all","all"),ids=markedIds(MK.tag,MK.did),box=$("#vMarks");
+function renderMarks(){const openIds=new Set([...document.querySelectorAll('#vMarks .mitem.open [data-mopen]')].map(b=>b.dataset.mopen));const all=markedIds("all","all"),ids=markedIds(MK.tag,MK.did),box=$("#vMarks");
   const decksWith=[...new Set(all.map(id=>CARDS[id].did))].map(id=>DECKS[id]).filter(Boolean).sort((a,b)=>(a.num??999)-(b.num??999));
   const cnt=t=>markedIds(t,MK.did).length;
   let h='<div class="pad" style="padding-block:12px;display:flex;flex-direction:column;gap:10px"><div class="stbar" style="padding:0">'+
@@ -1107,8 +1110,10 @@ function renderMarks(){const all=markedIds("all","all"),ids=markedIds(MK.tag,MK.
   if(!all.length)h+='<div class="empty">Todavía no has marcado ninguna pregunta.<br>Mientras estudias, usa los botones ⭐ Repasar, Fácil, Difícil o Errónea que hay debajo de cada pregunta. Por voz: «estrella», «marca difícil», «marca errónea» o «marca la anterior».</div>';
   else h+='<div class="decklist">'+ids.sort((a,b)=>(MARKS[b].ts||0)-(MARKS[a].ts||0)).map(id=>{const c=CARDS[id],d=DECKS[c.did],m=MARKS[id];
       return '<div class="mitem pad"><button class="mq" data-mopen="'+id+'"><small>'+(d.num!=null?"Tema "+d.num:esc(d.name))+' · '+Object.keys(m.t).map(t=>MTAGN[t]).join(" · ")+'</small><span>'+esc(c.q)+'</span>'+
-        '<span class="ma">'+nl(c.kind==="test"?c.opts[c.a]:c.ans)+(c.exp?'<em>'+nl(c.exp)+'</em>':'')+(m.n?'<b>Tu nota: '+esc(m.n)+'</b>':'')+'</span></button>'+marksRow(id)+'</div>'}).join("")+'</div>';
+        '<span class="ma">'+nl(c.kind==="test"?c.opts[c.a]:c.ans)+(c.exp?'<em>'+nl(c.exp)+'</em>':'')+(m.n?'<b>Tu nota: '+esc(m.n)+'</b>':'')+'</span></button><div class="mfoot">'+marksRow(id)+'<button class="mchip medit" data-medit="'+id+'" aria-label="Editar pregunta"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg>Editar</button></div></div>'}).join("")+'</div>';
   box.innerHTML=h;
+  box.querySelectorAll("[data-mopen]").forEach(b=>{if(openIds.has(b.dataset.mopen))b.parentElement.classList.add("open")});
+  box.querySelectorAll("[data-medit]").forEach(b=>b.onclick=()=>{const c=CARDS[b.dataset.medit];if(c)cardForm(c.did,c.id)});
   box.querySelectorAll("[data-mf]").forEach(b=>b.onclick=()=>{MK.tag=b.dataset.mf;renderMarks()});
   $("#mkD").onchange=e=>{MK.did=e.target.value;renderMarks()};
   box.querySelectorAll("[data-mopen]").forEach(b=>b.onclick=()=>b.parentElement.classList.toggle("open"));
