@@ -467,6 +467,8 @@ let REF={};                                          // REF[did]={items:{cid:{te
 let CUSTOM={};                                       // CUSTOM[did]={cards:{},edits:{},hidden:[]}
 let BANK=[];
 try{BANK=JSON.parse(document.getElementById("qdata").textContent)}catch(e){BANK=[]}
+let ESTUDIO=[];
+try{ESTUDIO=JSON.parse(document.getElementById("edata").textContent)}catch(e){ESTUDIO=[]}
 
 function deckIdFor(tema){return"t"+parseInt(String(tema),10)}
 function buildIndex(){
@@ -477,11 +479,15 @@ function buildIndex(){
     const ed=CUSTOM[did]?.edits?.[q.id];if(CUSTOM[did]?.hidden?.includes(q.id))return;
     const c=Object.assign({id:q.id,did,kind:"test",q:q.q,opts:q.opts,a:q.a,exp:q.exp||"",warn:q.warn||"",ord:ord++,sub:/b$/.test(q.tema)?"b":""},ed||{});
     CARDS[c.id]=c;DCARDS[did].push(c.id)});
+  ESTUDIO.forEach(T=>{const n=+T.tema,did=deckIdFor(n);ensureDeck(did,n,NAMES[n]||T.nombre||("Tema "+n));
+    T.pags.forEach(pg=>pg.qs.forEach((q,i)=>{const id="e"+n+"p"+pg.p+"q"+i;if(CUSTOM[did]?.hidden?.includes(id))return;
+      const c=Object.assign({id,did,kind:"test",q:q.q,opts:q.opts,a:q.a,exp:q.exp||"",warn:"",ref:q.ref||"",ord:ord++,sub:"",pag:pg.p},CUSTOM[did]?.edits?.[id]||{});
+      CARDS[id]=c;DCARDS[did].push(id)}))});
   for(const [did,cd] of Object.entries(CFG.customDecks||{})){ensureDeck(did,cd.num??null,cd.name)}
   for(const [did,cu] of Object.entries(CUSTOM)){if(!DECKS[did])continue;
     for(const c of Object.values(cu.cards||{})){CARDS[c.id]=Object.assign({ord:ord++},c,{did});DCARDS[did].push(c.id)}}
   for(const d of Object.values(DECKS)){const o=CFG.decks[d.id]||{};if(o.name)d.name=o.name}
-  buildTests();
+  buildTests();bump();
 }
 const dcfg=did=>CFG.decks[did]||(CFG.decks[did]={});
 const deckList=()=>Object.values(DECKS).sort((a,b)=>(a.num??999)-(b.num??999)||a.name.localeCompare(b.name,"es"));
@@ -511,7 +517,7 @@ const snapshot=()=>({v:2,CFG,ST,LOG,CUSTOM,REF,MARKS,TRES,DOCTS});
 let localT=null;
 function saveLocalSoon(){clearTimeout(localT);localT=setTimeout(saveLocalNow,400)}
 async function saveLocalNow(){clearTimeout(localT);const s=JSON.stringify(snapshot());if(!(await idbSet("state",s))){try{localStorage.setItem(LKEY,s)}catch(e){toast("No se pudo guardar el progreso en el dispositivo")}}}
-function applyState(r){CFG=Object.assign({newPerDay:10,decks:{},customDecks:{}},r.CFG||{});ST=r.ST||{};LOG=r.LOG||{};CUSTOM=r.CUSTOM||{};REF=r.REF||{};MARKS=r.MARKS||{};TRES=Object.assign({results:{},prog:{}},r.TRES||{});
+function applyState(r){bump();CFG=Object.assign({newPerDay:10,decks:{},customDecks:{}},r.CFG||{});ST=r.ST||{};LOG=r.LOG||{};CUSTOM=r.CUSTOM||{};REF=r.REF||{};MARKS=r.MARKS||{};TRES=Object.assign({results:{},prog:{}},r.TRES||{});
   for(const k in DOCTS)delete DOCTS[k];Object.assign(DOCTS,r.DOCTS||{})}
 async function loadLocal(){idb=await idbOpen();let s=await idbGet("state");if(!s){try{s=localStorage.getItem(LKEY)}catch(e){}}
   if(s){try{applyState(JSON.parse(s));return true}catch(e){}}return false}
@@ -519,12 +525,12 @@ function allPaths(){const p=["config/main","marcas/main","tests/main"];Object.ke
 function docData(path){const i=path.indexOf("/"),col=path.slice(0,i),id=path.slice(i+1);
   if(col==="config")return CFG;if(col==="srs")return{cards:ST[id]||{}};if(col==="revlog")return{date:id,entries:LOG[id]||[]};
   if(col==="custom")return CUSTOM[id]||{cards:{},edits:{},hidden:[]};if(col==="resumen")return buildResumen();if(col==="marcas")return{m:MARKS};if(col==="tests")return TRES;return REF[id]||{items:{}}}
-function setDoc(path,v){const i=path.indexOf("/"),col=path.slice(0,i),id=path.slice(i+1);
+function setDoc(path,v){bump();const i=path.indexOf("/"),col=path.slice(0,i),id=path.slice(i+1);
   if(col==="config")CFG=Object.assign({newPerDay:10,decks:{},customDecks:{}},v);else if(col==="srs")ST[id]=v.cards||{};
   else if(col==="revlog")LOG[id]=v.entries||[];else if(col==="custom")CUSTOM[id]=v;else if(col==="refuerzo")REF[id]=v;else if(col==="marcas")MARKS=v.m||{};else if(col==="tests")TRES=Object.assign({results:{},prog:{}},v)}
 const pending=new Set();let pushT=null;
 function touch(path){DOCTS[path]=now();pending.add(path);DOCTS["resumen/main"]=now();pending.add("resumen/main");saveLocalSoon();if(SYNC.url){clearTimeout(pushT);pushT=setTimeout(pushRemote,2000)}}
-const saveSrs=did=>touch("srs/"+did),saveLog=ds=>touch("revlog/"+ds),saveCfg=()=>touch("config/main"),saveCustom=did=>touch("custom/"+did),saveRef=did=>touch("refuerzo/"+did),saveMarks=()=>touch("marcas/main");
+const saveSrs=did=>{bump();touch("srs/"+did)},saveLog=ds=>{bump();touch("revlog/"+ds)},saveCfg=()=>{bump();touch("config/main")},saveCustom=did=>touch("custom/"+did),saveRef=did=>touch("refuerzo/"+did),saveMarks=()=>touch("marcas/main");
 const fbBase=()=>SYNC.url.trim().replace(/\/+$/,"")+"/mazosOposicion";
 let pushing=false;
 async function pushRemote(){if(!SYNC.url||!pending.size||pushing)return;if(!navigator.onLine){setSync("sin conexión");return}
@@ -555,8 +561,9 @@ function downloadFile(name,text,type){const a=document.createElement("a");a.href
 
 /* ---------- resumen para los avisos (lo lee el servidor de GitHub) ---------- */
 function buildResumen(){const t=dayNum(now()),days={};const ds=deckList();const base={};
-  ds.forEach(d=>{const k=counts(d.id),c=dcfg(d.id),lim=c.paused?0:(c.newPerDay??CFG.newPerDay);base[d.id]={k,lim,left:Math.max(0,k.newLeft-k.n)}});
+  ds.forEach(d=>{const k=counts(d.id);base[d.id]={k,lim:0,left:0}});
   for(let o=0;o<7;o++){const day=t+o,eod=dayTs(day+1),rows=[];
+    if(o>0&&isWeekend(day)){days[dayStr(day)]=[];continue}
     ds.forEach(d=>{const b=base[d.id],st=ST[d.id]||{};let n,r;
       if(o===0){n=b.k.n;r=b.k.l+b.k.r}
       else{n=Math.min(b.lim,Math.max(0,b.left-b.lim*(o-1)));r=0;for(const cid of DCARDS[d.id]||[]){const s=st[cid];if(!s)continue;if(s.ty==="review"?s.due<=day:(isLearnT(s.ty)&&s.due<eod))r++}}
@@ -582,9 +589,19 @@ async function enablePush(){if(!pushSupported())throw new Error("Este navegador 
 async function disablePush(){const sub=await currentSub();if(!sub)return;try{await fetch(fbBase()+"/push/"+hashId(sub.endpoint)+".json",{method:"DELETE"})}catch(e){}await sub.unsubscribe()}
 /* ---------- planificador (SM-2 al estilo Anki) ---------- */
 const LS=[1,10],RLS=[10],AHEAD=20*60e3;
-const maxIvl=did=>dcfg(did).weak?7:36500;
-function sched(s0,ease,n,did){const s=Object.assign({ty:"new",ivl:0,ease:2.5,step:0,reps:0,lap:0},s0||{}),t=dayNum(n),cap=maxIvl(did);
-  const grad=ivl=>{s.ty="review";s.ivl=Math.min(ivl,cap);s.due=t+s.ivl;s.step=0};
+const maxIvl=did=>36500;                              // sin límite de 7 días (el «tema flojo» es solo una etiqueta)
+/* ---------- días de estudio: de lunes a viernes, máximo diario global ---------- */
+let STVER=0,DUELOAD=null,PLAN=null;
+function bump(){STVER++;DUELOAD=null}
+const dailyMax=()=>CFG.dailyMax??300;
+const isWeekend=n=>{const g=new Date(dayTs(n)).getDay();return g===0||g===6};
+const nextWorkday=n=>{let d=n+1;while(isWeekend(d))d++;return d};
+function dueLoad(){if(DUELOAD)return DUELOAD;const m={};for(const did in ST){const st=ST[did];for(const cid in st){const s=st[cid];if(s&&s.ty==="review")m[s.due]=(m[s.due]||0)+1}}return DUELOAD=m}
+// Si un repaso cae en sábado o domingo, pasa al viernes o al lunes, el que tenga menos carga.
+function studyDay(d,t,L){if(!isWeekend(d))return d;const g=new Date(dayTs(d)).getDay(),fri=d-(g===6?1:2),mon=d+(g===6?2:1);
+  if(fri<=t)return mon;const l=L||dueLoad();return(l[fri]||0)<=(l[mon]||0)?fri:mon}
+function sched(s0,ease,n,did,L){const s=Object.assign({ty:"new",ivl:0,ease:2.5,step:0,reps:0,lap:0},s0||{}),t=dayNum(n),cap=maxIvl(did),due=iv=>studyDay(t+iv,t,L);
+  const grad=ivl=>{s.ty="review";s.ivl=Math.min(ivl,cap);s.due=due(s.ivl);s.step=0};
   const first=s.ty==="new";if(first){s.ty="learn";s.step=0}
   if(first&&ease>=3)grad(ease===4?10:5);   // primera vez: Muy fácil 10 días, Bien 5 días
   else if(s.ty==="learn"){
@@ -597,38 +614,62 @@ function sched(s0,ease,n,did){const s=Object.assign({ty:"new",ivl:0,ease:2.5,ste
     else{let iv;if(ease===2){iv=Math.max(s.ivl+1,Math.round(s.ivl*1.2));s.ease=Math.max(1.3,s.ease-.15)}
       else if(ease===3)iv=Math.max(s.ivl+1,Math.round(s.ivl*s.ease));
       else{iv=Math.max(s.ivl+2,Math.round(s.ivl*s.ease*1.3));s.ease+=.15}
-      s.ivl=Math.min(iv,cap);s.due=t+s.ivl}
+      s.ivl=Math.min(iv,cap);s.due=due(s.ivl)}
   }else{
     if(ease===1){s.step=0;s.due=n+RLS[0]*60e3}
     else if(ease===2){s.due=n+RLS[0]*60e3}
-    else if(ease===3){s.ty="review";s.due=t+s.ivl}
-    else{s.ty="review";s.ivl=Math.min(s.ivl+1,cap);s.due=t+s.ivl}
+    else if(ease===3){s.ty="review";s.due=due(s.ivl)}
+    else{s.ty="review";s.ivl=Math.min(s.ivl+1,cap);s.due=due(s.ivl)}
   }
   s.reps++;return s}
 function ivlText(s,ease,did){const n=now(),x=sched(s,ease,n,did);
   if(isLearnT(x.ty)){const m=Math.round((x.due-n)/60e3);return m<60?m+" min":Math.round(m/60)+" h"}
   const d=x.due-dayNum(n);if(d===1)return"1 día";if(d<30)return d+" días";if(d<365)return dec(d/30)+" meses";return dec(d/365)+" años"}
 
-function counts(did){if(did==="_marks")return marksCounts();const t=dayNum(now()),eot=dayTs(t+1),st=ST[did]||{};let nw=0,ln=0,rv=0,intro=0;
-  for(const cid of DCARDS[did]||[]){const s=st[cid],ty=typeOf(s);
-    if(ty==="new")nw++;else if(isLearnT(ty)){if(s.due<eot)ln++}else if(s.due<=t)rv++;
-    if(s&&s.intro===t)intro++}
-  const c=dcfg(did),lim=c.paused?0:(c.newPerDay??CFG.newPerDay);
-  return{n:Math.max(0,Math.min(nw,lim-intro)),l:ln,r:rv,total:(DCARDS[did]||[]).length,newLeft:nw}}
+// Plan del día: cada pregunta cuenta una vez (los fallos que se repiten no suman).
+function plan(){const n=now(),t=dayNum(n);if(PLAN&&PLAN.day===t&&PLAN.ver===STVER)return PLAN;
+  const cap=dailyMax(),wk=isWeekend(t),eot=dayTs(t+1),done=new Set((LOG[dayStr(t)]||[]).map(r=>r.c));
+  const P={day:t,ver:STVER,ids:new Set(),cap,weekend:wk,used:0,backlog:0,newToday:0};
+  const dueL=[],news={},intro={};let introN=0;
+  for(const d of Object.values(DECKS)){const st=ST[d.id]||{},paused=!!dcfg(d.id).paused,nl=[];
+    for(const cid of DCARDS[d.id]||[]){const s=st[cid],ty=typeOf(s);
+      if(done.has(cid)){P.used++;if(s&&s.intro===t){introN++;intro[d.id]=(intro[d.id]||0)+1}if(isLearnT(ty))P.ids.add(cid);continue}
+      if(ty==="new"){if(!paused)nl.push(cid)}
+      else if(isLearnT(ty)){if(s.due<eot)dueL.push([dayNum(s.due),s.due,cid])}
+      else if(s.due<=t)dueL.push([s.due,0,cid])}
+    if(nl.length)news[d.id]=nl.sort((a,b)=>CARDS[a].ord-CARDS[b].ord)}
+  dueL.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  let room=wk?0:Math.max(0,cap-P.used),rev=0;
+  for(const x of dueL){if(room<=0)break;P.ids.add(x[2]);room--;rev++}
+  P.backlog=dueL.length-rev;
+  // nuevas: el cupo del día (incluidas las ya introducidas hoy) se reparte por turnos entre los temas
+  const order=deckList().map(d=>d.id).filter(id=>news[id]||intro[id]);
+  if(room>0&&order.length){const k=t%order.length,rot=order.slice(k).concat(order.slice(0,k)),alloc={},capD=id=>(intro[id]||0)+(news[id]||[]).length;
+    let budget=room+introN,any=true;
+    while(budget>0&&any){any=false;for(const id of rot){if(budget<=0)break;if((alloc[id]||0)<capD(id)){alloc[id]=(alloc[id]||0)+1;budget--;any=true}}}
+    const take={};let left=room;
+    for(const id of rot){const q=Math.min(left,Math.max(0,(alloc[id]||0)-(intro[id]||0)),(news[id]||[]).length);take[id]=q;left-=q}
+    any=true;while(left>0&&any){any=false;for(const id of rot){if(left<=0)break;if(take[id]<(news[id]||[]).length){take[id]++;left--;any=true}}}
+    for(const id of rot)for(let i=0;i<take[id];i++){P.ids.add(news[id][i]);P.newToday++}}
+  return PLAN=P}
+function counts(did){if(did==="_marks")return marksCounts();const P=plan(),eot=dayTs(P.day+1),st=ST[did]||{};let nw=0,ln=0,rv=0,left=0;
+  for(const cid of DCARDS[did]||[]){const s=st[cid],ty=typeOf(s);if(ty==="new")left++;if(!P.ids.has(cid))continue;
+    if(ty==="new")nw++;else if(isLearnT(ty)){if(s.due<eot)ln++}else rv++}
+  return{n:nw,l:ln,r:rv,total:(DCARDS[did]||[]).length,newLeft:left}}
 function nextStudy(did){if(did==="_marks")return null;const t=dayNum(now()),k=counts(did);if(k.n+k.l+k.r>0)return t;let m=Infinity;const st=ST[did]||{};
-  for(const cid of DCARDS[did]||[]){const s=st[cid];if(!s)continue;if(s.ty==="review")m=Math.min(m,s.due);else if(isLearnT(s.ty))m=Math.min(m,dayNum(s.due))}
-  const c=dcfg(did);if(k.newLeft>0&&!c.paused&&(c.newPerDay??CFG.newPerDay)>0)m=Math.min(m,t+1);return m===Infinity?null:m}
+  for(const cid of DCARDS[did]||[]){const s=st[cid];if(!s)continue;if(s.ty==="review")m=Math.min(m,Math.max(s.due,t+1));else if(isLearnT(s.ty))m=Math.min(m,Math.max(dayNum(s.due),t+1))}
+  if(k.newLeft>0&&!dcfg(did).paused)m=Math.min(m,t+1);if(m===Infinity)return null;while(isWeekend(m))m++;return m}
 function allLogs(){const out=[];for(const k in LOG)for(const r of LOG[k])out.push(r);return out}
 function lastStudy(did){let m=null;for(const k in LOG)for(const r of LOG[k])if(r.d===did&&(m===null||r.t>m))m=r.t;return m}
 
 let sess={alt:0,last:null,done:0,ok:0,bad:0,start:0,hist:[]};
-function nextCard(did,avoid){if(did==="_marks")return nextMarked(avoid);const n=now(),t=dayNum(n),st=ST[did]||{},k=counts(did);
+function nextCard(did,avoid){if(did==="_marks")return nextMarked(avoid);const n=now(),t=dayNum(n),st=ST[did]||{},P=plan();
   const learnNow=[],rev=[],news=[],ahead=[];
-  for(const cid of DCARDS[did]||[]){const s=st[cid],ty=typeOf(s);
+  for(const cid of DCARDS[did]||[]){if(!P.ids.has(cid))continue;const s=st[cid],ty=typeOf(s);
     if(ty==="new")news.push(cid);else if(isLearnT(ty)){if(s.due<=n)learnNow.push(cid);else if(s.due<=n+AHEAD)ahead.push(cid)}else if(s.due<=t)rev.push(cid)}
   const byDue=(a,b)=>st[a].due-st[b].due;learnNow.sort(byDue);ahead.sort(byDue);
   rev.sort((a,b)=>st[a].due-st[b].due||Math.random()-.5);
-  news.sort((a,b)=>CARDS[a].ord-CARDS[b].ord);const nw=news.slice(0,k.n);
+  news.sort((a,b)=>CARDS[a].ord-CARDS[b].ord);const nw=news;
   const first=l=>l.find(c=>c!==avoid);
   let p=first(learnNow);
   if(!p){const r=first(rev),w=first(nw);p=r&&w?(sess.alt++%3===2?w:r):(r||w)}
@@ -692,7 +733,7 @@ function renderDecks(){const ds=deckList(),t=dayNum(now()),today=LOG[dayStr(t)]|
     rows+='<div class="deck pad '+cls+'"><button class="main" data-open="'+d.id+'"><span class="mark"></span><span class="dn"><span class="nm">'+(d.num!=null?'<span class="num">T'+d.num+'</span>':'')+esc(d.name)+tags+'</span><small>'+info+'</small></span></button><div class="cols tabnum">'+b(k.n,"c-n")+b(k.l,"c-l")+b(k.r,"c-r")+'</div><button class="more" data-more="'+d.id+'" aria-label="Opciones del mazo">'+I.more+'</button></div>'}
   rows+=testRows();
   const nMk=markedIds("all","all").length;
-  $("#summary").innerHTML=(nMk?'<button class="mkbar" id="mkBar">⭐ '+nMk+' preguntas marcadas · ver y estudiar</button>':'')+'<span><b>'+due+'</b> preguntas para hoy en <b>'+act+'</b> de '+ds.length+' temas</span><span>Hoy: '+today.length+' respondidas · '+Math.round(ms/60000)+' min</span>';
+  $("#summary").innerHTML=(nMk?'<button class="mkbar" id="mkBar">⭐ '+nMk+' preguntas marcadas · ver y estudiar</button>':'')+(PLAN&&PLAN.weekend?'<span>Fin de semana: hoy no toca estudiar · el lunes sigues</span>':'<span><b>'+due+'</b> preguntas pendientes hoy en <b>'+act+'</b> de '+ds.length+' temas · llevas '+(PLAN?PLAN.used:0)+' de '+dailyMax()+' del día'+(PLAN&&PLAN.backlog?' · '+PLAN.backlog+' repasos pasan al próximo día':'')+'</span>')+'<span>Hoy: '+today.length+' respondidas · '+Math.round(ms/60000)+' min</span>';
   $("#deckList").innerHTML=ds.length?'<div class="dhead pad"><span class="sp">Tema</span><div class="cols"><span>Nue</span><span>Apr</span><span>Rep</span></div><span style="width:40px"></span></div>'+rows:'<div class="empty">No hay mazos.</div>';
   if($("#mkBar"))$("#mkBar").onclick=()=>go("marks");
   $("#deckList").querySelectorAll("[data-test]").forEach(b=>b.onclick=()=>openTest(+b.dataset.test));
@@ -710,11 +751,11 @@ function deckMenu(did){const d=DECKS[did],c=dcfg(did);
 function renameForm(did){const s=sheet('<h4>Renombrar mazo</h4><div class="field"><label for="rn">Nombre</label><input id="rn" value="'+esc(DECKS[did].name)+'"></div><div class="rowbtns"><button class="tbtn" data-x>Cancelar</button><button class="tbtn" data-ok>Guardar</button></div>');
   s.querySelector("[data-x]").onclick=closeSheet;s.querySelector("[data-ok]").onclick=()=>{const v=$("#rn").value.trim();if(v){dcfg(did).name=v;if(CFG.customDecks[did])CFG.customDecks[did].name=v;saveCfg();buildIndex()}closeSheet();go(view)}}
 function deckOptions(did){const c=dcfg(did);
-  const s=sheet('<h4>Opciones · '+esc(DECKS[did].name)+'</h4><div class="field" style="margin-top:8px"><label for="np">Preguntas nuevas por día</label><input id="np" type="number" min="0" max="999" value="'+(c.newPerDay??CFG.newPerDay)+'"></div>'+
-   '<label class="switchrow"><span>Tema flojo<small>Intervalo máximo de 7 días, como en Repaso: vuelve más a menudo</small></span><input type="checkbox" id="wk"'+(c.weak?" checked":"")+'></label>'+
+  const s=sheet('<h4>Opciones · '+esc(DECKS[did].name)+'</h4><p class="note" style="margin-top:8px">Las nuevas se reparten entre todos los temas hasta completar '+dailyMax()+' preguntas al día.</p>'+
+   '<label class="switchrow"><span>Tema flojo<small>Solo una etiqueta para recordarte que lo llevas peor</small></span><input type="checkbox" id="wk"'+(c.weak?" checked":"")+'></label>'+
    '<label class="switchrow"><span>En pausa<small>No entran preguntas nuevas; los repasos pendientes siguen apareciendo</small></span><input type="checkbox" id="ps"'+(c.paused?" checked":"")+'></label>'+
    '<div class="rowbtns" style="margin-top:12px"><button class="tbtn" data-x>Cancelar</button><button class="fbtn" data-ok>Guardar</button></div>');
-  s.querySelector("[data-x]").onclick=closeSheet;s.querySelector("[data-ok]").onclick=()=>{c.newPerDay=Math.max(0,parseInt($("#np").value)||0);c.weak=$("#wk").checked;c.paused=$("#ps").checked;saveCfg();closeSheet();go(view)}}
+  s.querySelector("[data-x]").onclick=closeSheet;s.querySelector("[data-ok]").onclick=()=>{c.weak=$("#wk").checked;c.paused=$("#ps").checked;saveCfg();closeSheet();go(view)}}
 
 /* ---------- edición de preguntas ---------- */
 function cardForm(did,cid){const c=cid?CARDS[cid]:null,kind=c?c.kind:"test";
@@ -791,7 +832,7 @@ function importCards(cards,suggested){const byTema=cards.filter(c=>c.tema).lengt
 function renderOverview(){const d=DECKS[curDeck];if(!d){go("decks");return}const k=counts(d.id),sum=k.n+k.l+k.r,c=dcfg(d.id);
   const nx=nextStudy(d.id),ls=lastStudy(d.id),st=ST[d.id]||{};const seen=Object.keys(st).filter(id=>CARDS[id]).length;
   $("#vOverview").innerHTML='<div class="ov pad"><h2>'+(d.num!=null?"Tema "+d.num+" · ":"")+esc(d.name)+'</h2><div class="ovcounts tabnum"><div><b class="c-n">'+k.n+'</b><span>Nuevas</span></div><div><b class="c-l">'+k.l+'</b><span>Aprendiendo</span></div><div><b class="c-r">'+k.r+'</b><span>Para repasar</span></div></div>'+
-   '<div class="ovmeta">'+k.total+' preguntas · '+seen+' vistas · '+(c.paused?"en pausa":(c.newPerDay??CFG.newPerDay)+" nuevas al día")+(c.weak?" · tema flojo":"")+'<br>Último estudio: '+(ls?relDay(dayNum(ls)):"nunca")+' · Próximo: '+(nx===null?"—":relDay(nx))+'</div>'+
+   '<div class="ovmeta">'+k.total+' preguntas · '+seen+' vistas · '+(c.paused?"en pausa":k.newLeft+" nuevas por ver")+(c.weak?" · tema flojo":"")+'<br>Último estudio: '+(ls?relDay(dayNum(ls)):"nunca")+' · Próximo: '+(nx===null?"—":relDay(nx))+'</div>'+
    '<button class="bigbtn" id="studyBtn"'+(sum?"":" disabled")+'>'+(sum?"Estudiar":"Al día")+'</button>'+
    (refStatusText(d.id)?'<div class="ref-ov"><span>'+esc(refStatusText(d.id))+'</span>'+(refPending(d.id).length&&hasAI()&&!refOff&&!refBusy?'<button class="chipbtn" id="refNow">Preparar ahora</button>':'')+'</div>':'')+
    '<div class="linkrow"><button class="chipbtn" data-a="voice">🎙 Estudiar por voz</button><button class="chipbtn" data-a="add">Añadir pregunta</button><button class="chipbtn" data-a="stat">Estadísticas</button><button class="chipbtn" data-a="opt">Opciones</button></div></div>';
@@ -1232,8 +1273,7 @@ function startRetry(T0,ids){const order={};ids.forEach(id=>order[id]=shuffle3())
   const pg={mode:CFG.testMode||"examen",ans:{},order,pos:0,ms:0,start:now(),done:{}};
   TR={T:{n:T0.n,ids:ids.slice(),retry:true},pg,qStart:now(),sessStart:now(),showGrid:false};go("test");window.scrollTo(0,0)}
 /* ---------- estudio: preguntas por página del temario ---------- */
-let ESTUDIO=[];
-try{ESTUDIO=JSON.parse(document.getElementById("edata").textContent)}catch(e){ESTUDIO=[]}
+
 let ER=null;                                    // sesión en curso {t,p,ids,pos,ans,retry}
 const estKey=(t,p)=>"t"+t+"p"+p;
 const estRes=()=>(TRES.estudio=TRES.estudio||{});
@@ -1318,20 +1358,36 @@ try{const o=JSON.parse(localStorage.getItem("fcOpts")||"{}");if([7,30,90].includ
 const saveFC=()=>{try{localStorage.setItem("fcOpts",JSON.stringify({range:FC.range,real:FC.real}))}catch(e){}};
 function rng32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let x=Math.imul(a^a>>>15,1|a);x=x+Math.imul(x^x>>>7,61|x)^x;return((x^x>>>14)>>>0)/4294967296}}
 // Simula los próximos días con el planificador real: cada pregunta se responde «Bien»; en modo real, falla con probabilidad «fail».
-function fcSim(ids,fail,rnd){const t=dayNum(now()),F=FC_DAYS,z=()=>new Array(F).fill(0),R={n:z(),r:z(),o:z(),l:z(),x:z(),end:null},B=Array.from({length:F},()=>[]),left={},lim={};
-  ids.forEach(did=>{const st=ST[did]||{},c=dcfg(did);let nw=0;
+function fcSim(ids,fail,rnd){const t=dayNum(now()),F=FC_DAYS,z=()=>new Array(F).fill(0),R={n:z(),r:z(),o:z(),l:z(),x:z(),end:null},CAP=dailyMax(),sel=new Set(ids);
+  const B=Array.from({length:F},()=>[]),L=Object.assign({},dueLoad()),P=plan(),left={};let carry=[];
+  const all=deckList().map(d=>d.id);
+  all.forEach(did=>{const st=ST[did]||{},paused=!!dcfg(did).paused;let nw=0;
     for(const cid of DCARDS[did]||[]){const s=st[cid],ty=typeOf(s);
-      if(ty==="new"){nw++;continue}
-      if(isLearnT(ty)){const d=Math.max(0,dayNum(s.due)-t);if(d<F)B[d].push([s,did,"l"])}
-      else{const d=Math.max(0,s.due-t);if(d<F)B[d].push([s,did,s.due<t?"o":"r"])}}
-    left[did]=nw;lim[did]=c.paused?0:(c.newPerDay??CFG.newPerDay)});
+      if(ty==="new"){if(!paused&&!P.ids.has(cid))nw++;continue}
+      if(P.ids.has(cid)){B[0].push([s,did,isLearnT(ty)?"l":s.due<t?"o":"r",0]);continue}
+      if(isLearnT(ty)){const d=Math.max(1,dayNum(s.due)-t);if(d<F)B[d].push([s,did,"l",dayNum(s.due)])}
+      else if(s.due>t){const d=s.due-t;if(d<F)B[d].push([s,did,"r",s.due])}else carry.push([s,did,"o",s.due])}
+    left[did]=nw});
+  const add=(k,did,d,v)=>{if(sel.has(did))R[k][d]+=v};
   const run=(s,did,d)=>{const ts=dayTs(t+d)+12*3600e3;let e=rnd&&rnd()<fail?1:3,k=0;
-    do{if(e===1)R.x[d]++;s=sched(s,e,ts,did);e=3}while(isLearnT(s.ty)&&++k<6);
-    if(s.ty==="review"){const nd=s.due-t;if(nd>d&&nd<F)B[nd].push([s,did,"r"])}};
-  for(let d=0;d<F;d++){
-    for(const [s,did,k] of B[d]){R[k][d]++;run(s,did,d)}
-    let rest=0;ids.forEach(did=>{const q=Math.max(0,Math.min(left[did],d===0?counts(did).n:lim[did]));left[did]-=q;R.n[d]+=q;rest+=left[did];for(let i=0;i<q;i++)run(null,did,d)});
-    if(R.end===null&&rest===0)R.end=d}
+    do{if(e===1)add("x",did,d,1);if(s&&s.ty==="review")L[s.due]=Math.max(0,(L[s.due]||0)-1);s=sched(s,e,ts,did,L);e=3}while(isLearnT(s.ty)&&++k<6);
+    if(s.ty==="review"){L[s.due]=(L[s.due]||0)+1;const nd=s.due-t;if(nd>d&&nd<F)B[nd].push([s,did,"r",s.due])}};
+  // hoy: lo que queda del plan de hoy (repasos + nuevas ya asignadas)
+  for(const [s,did,k] of B[0]){add(k,did,0,1);run(s,did,0)}
+  for(const cid of P.ids){const c=CARDS[cid];if(c&&!stOf(cid)){add("n",c.did,0,1);run(null,c.did,0)}}
+  const selLeft=()=>ids.reduce((a,id)=>a+(left[id]||0),0);
+  if(selLeft()===0&&!ids.some(id=>(DCARDS[id]||[]).some(cid=>P.ids.has(cid)&&!stOf(cid))))R.end=0;
+  carry=carry.concat([]);
+  for(let d=1;d<F;d++){
+    const today=carry.concat(B[d]);carry=[];
+    if(isWeekend(t+d)){carry=today;continue}
+    today.sort((a,b)=>a[3]-b[3]);
+    let room=CAP;
+    for(const it of today){if(room<=0){carry.push([it[0],it[1],"o",it[3]]);continue}room--;add(it[3]<t+d&&it[2]!=="l"?"o":it[2],it[1],d,1);run(it[0],it[1],d)}
+    const order=all.filter(id=>left[id]>0);
+    if(room>0&&order.length){const k=(t+d)%order.length,rot=order.slice(k).concat(order.slice(0,k));let any=true;
+      while(room>0&&any){any=false;for(const id of rot){if(room<=0)break;if(left[id]>0){left[id]--;room--;any=true;add("n",id,d,1);run(null,id,d)}}}}
+    if(R.end===null&&selLeft()===0)R.end=d}
   return R}
 function fcData(){FC.cache=FC.cache||{};const c=FC.cache;if(c[FC.real])return c[FC.real];const ids=FC.ctx.ids;let D;
   if(!FC.real)D=fcSim(ids,0,null);
@@ -1371,7 +1427,7 @@ function renderForecast(){const box=$("#fcBox");if(!box||!FC.ctx)return;const {s
   const sb=B[sel],avgV=weekly?sumB(0,91).tot/13:sumB(0,R).tot/R;
   let h='<h3>Previsión</h3><p class="sub">'+(real
     ?'Carga real: simula un '+Math.round(FC_FAIL*100)+' % de fallos (cada fallo se repite ese día y vuelve al siguiente)'+(failReal!=null?'. Tu fallo real en repasos (30 d): '+failReal+' %':'')
-    :'Preguntas que tendrás que responder cada día si las aciertas, incluidas las nuevas de tu límite diario')+'</p>'+
+    :'Preguntas de cada día si las aciertas: máximo '+dailyMax()+' al día (repasos primero y nuevas hasta completar), sin sábados ni domingos')+'</p>'+
     '<div class="fc-ctl">'+[[7,"7 días"],[30,"30 días"],[90,"3 meses"]].map(([v,l])=>'<button class="seg'+(R===v?" on":"")+'" data-fr="'+v+'">'+l+'</button>').join("")+
     '<button class="seg fc-real'+(real?" on":"")+'" id="fcReal" aria-pressed="'+real+'">'+(real?"✓ ":"")+'Carga real ('+Math.round(FC_FAIL*100)+' % fallos)</button></div>'+
     '<div class="kpis">'+kpi("Hoy",rd(dayB(0).tot),"≈ "+fcMin(dayB(0).tot,secs))+kpi("Mañana",rd(dayB(1).tot),"≈ "+fcMin(dayB(1).tot,secs))+
@@ -1466,9 +1522,9 @@ function renderStats(){fillDeckSelect();
 function renderSettings(){
   $("#settingsBody").innerHTML=
    '<div class="sec-t">Estudio</div>'+
-   '<div class="field"><label for="defNew">Preguntas nuevas por día (valor general)</label><input id="defNew" type="number" min="0" max="999" value="'+CFG.newPerDay+'"></div>'+
-   '<div class="rowbtns"><button class="tbtn" id="applyAll">Aplicar a todos los temas</button><button class="fbtn" id="saveDef">Guardar</button></div>'+
-   '<p class="note">Cada tema puede tener su propio límite, marcarse como flojo o ponerse en pausa desde el menú ⋮ de la lista de mazos.</p>'+
+   '<div class="field"><label for="defNew">Máximo de preguntas al día (repasos + nuevas)</label><input id="defNew" type="number" min="1" max="2000" value="'+dailyMax()+'"></div>'+
+   '<div class="rowbtns"><button class="fbtn" id="saveDef">Guardar</button></div>'+
+   '<p class="note">Primero entran los repasos, de los más atrasados a los más recientes, y el hueco que queda se llena con nuevas repartidas entre los temas. Los fallos que se repiten no cuentan otra vez. Sábados y domingos no hay preguntas: los repasos que caerían en fin de semana pasan al viernes o al lunes. Cada tema puede ponerse en pausa desde el menú ⋮ de la lista de mazos.</p>'+
    '<div class="sec-t">Guardado y sincronización</div>'+
    '<p class="note">El progreso se guarda en este dispositivo automáticamente. Para tenerlo también en otro móvil u ordenador, pega la URL de tu Realtime Database de Firebase.</p>'+
    '<div class="field"><label for="fbUrl">URL de Firebase Realtime Database (opcional)</label><input id="fbUrl" type="url" placeholder="https://tu-proyecto-default-rtdb.europe-west1.firebasedatabase.app" value="'+esc(SYNC.url)+'"></div>'+
@@ -1494,8 +1550,7 @@ function renderSettings(){
    '<div class="rowbtns"><button class="tbtn danger" id="wipe">Reiniciar todo el progreso</button></div>';
   $("#vBarge").onchange=e=>{SYNC.bargeIn=e.target.checked;saveSyncCfg();toast(e.target.checked?"Podrás responder mientras lee":"Responderás cuando termine de leer")};
   $("#vRate").onchange=e=>{SYNC.voiceRate=+e.target.value;saveSyncCfg();toast("Velocidad guardada")};
-  $("#saveDef").onclick=()=>{CFG.newPerDay=Math.max(0,parseInt($("#defNew").value)||0);saveCfg();toast("Guardado")};
-  $("#applyAll").onclick=()=>{CFG.newPerDay=Math.max(0,parseInt($("#defNew").value)||0);Object.keys(DECKS).forEach(id=>{dcfg(id).newPerDay=CFG.newPerDay});saveCfg();toast("Aplicado a todos los temas")};
+  $("#saveDef").onclick=()=>{CFG.dailyMax=Math.max(1,parseInt($("#defNew").value)||300);saveCfg();toast("Guardado")};
   const saveUrl=()=>{const u=$("#fbUrl").value.trim();if(u&&!/^https:\/\/[^/]+\.(firebaseio\.com|firebasedatabase\.app)\/?$/.test(u)){$("#fbMsg").textContent="La URL debe ser la de la base de datos, del estilo https://algo.firebasedatabase.app (no la de la consola).";return false}SYNC.url=u;SYNC.syncOff=!u;saveSyncCfg();return true};
   $("#fbSave").onclick=()=>{if(saveUrl()){$("#fbMsg").textContent=SYNC.url?"Guardado. Se sincroniza al abrir la app y al salir de ella.":"Sincronización desactivada.";if(SYNC.url)pullRemote()}};
   $("#fbTest").onclick=async()=>{if(!saveUrl()||!SYNC.url)return;$("#fbMsg").textContent="Probando…";
