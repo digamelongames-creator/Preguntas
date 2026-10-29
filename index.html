@@ -304,6 +304,20 @@ table.plan{width:100%;border-collapse:collapse;font-size:13.5px}
 .dlist .n{font-family:var(--f-num);text-align:right}
 .dlist .p{font-family:var(--f-num);text-align:right;color:var(--muted);font-size:12.5px}
 .heatinfo{font-size:12.5px;color:var(--muted);margin-top:6px;min-height:1.2em}
+.fc-ctl{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 14px}
+.fc-real.on{background:var(--imp);border-color:var(--imp);color:#fff}
+.chart .fcv{fill:var(--fg);font-family:var(--f-num);font-size:9.5px;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
+.chart .fcv.on,.chart .fcx.on{font-weight:700;fill:var(--fg)}
+.fc-avg{display:inline-block;width:14px;border-top:2px dashed var(--fg);opacity:.6;margin-right:5px;vertical-align:3px}
+.chart .fchit{cursor:pointer}
+.fc-info{margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;font-size:13px}
+.fc-big{font-size:18px;font-family:var(--f-num);margin-top:2px}
+.fc-big em{font-style:normal;font-size:13px;color:var(--muted);font-family:var(--f-ui)}
+.fct th:not(:first-child){text-align:right;padding-right:0;padding-left:6px}
+.fct td.num{padding-right:0;padding-left:6px}
+.fct tbody tr{cursor:pointer}
+.fct tr.sel td{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.fct tr.tot td{border-top:2px solid var(--line);font-weight:500}
 
 /* Formularios */
 .form{display:flex;flex-direction:column;gap:14px;padding-block:16px}
@@ -1297,6 +1311,88 @@ function donut(parts){const r=46,C=2*Math.PI*r,tot=parts.reduce((s,p)=>s+p[2],0)
   return '<svg viewBox="0 0 130 130" role="img">'+g+'</svg>'}
 const ttOf=r=>r.tt??r.ms,mins=ms=>Math.round(ms/60000)+" min";
 const kpi=(l,v,sub)=>'<div class="kpi"><span>'+l+'</span><b>'+v+'</b>'+(sub?'<em>'+sub+'</em>':'')+'</div>';
+/* ---------- previsión ---------- */
+const FC_FAIL=.15,FC_RUNS=12,FC_DAYS=91;
+let FC={range:7,real:false,sel:0,all:false,cache:null,ctx:null};
+try{const o=JSON.parse(localStorage.getItem("fcOpts")||"{}");if([7,30,90].includes(o.range))FC.range=o.range;FC.real=!!o.real}catch(e){}
+const saveFC=()=>{try{localStorage.setItem("fcOpts",JSON.stringify({range:FC.range,real:FC.real}))}catch(e){}};
+function rng32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let x=Math.imul(a^a>>>15,1|a);x=x+Math.imul(x^x>>>7,61|x)^x;return((x^x>>>14)>>>0)/4294967296}}
+// Simula los próximos días con el planificador real: cada pregunta se responde «Bien»; en modo real, falla con probabilidad «fail».
+function fcSim(ids,fail,rnd){const t=dayNum(now()),F=FC_DAYS,z=()=>new Array(F).fill(0),R={n:z(),r:z(),o:z(),l:z(),x:z(),end:null},B=Array.from({length:F},()=>[]),left={},lim={};
+  ids.forEach(did=>{const st=ST[did]||{},c=dcfg(did);let nw=0;
+    for(const cid of DCARDS[did]||[]){const s=st[cid],ty=typeOf(s);
+      if(ty==="new"){nw++;continue}
+      if(isLearnT(ty)){const d=Math.max(0,dayNum(s.due)-t);if(d<F)B[d].push([s,did,"l"])}
+      else{const d=Math.max(0,s.due-t);if(d<F)B[d].push([s,did,s.due<t?"o":"r"])}}
+    left[did]=nw;lim[did]=c.paused?0:(c.newPerDay??CFG.newPerDay)});
+  const run=(s,did,d)=>{const ts=dayTs(t+d)+12*3600e3;let e=rnd&&rnd()<fail?1:3,k=0;
+    do{if(e===1)R.x[d]++;s=sched(s,e,ts,did);e=3}while(isLearnT(s.ty)&&++k<6);
+    if(s.ty==="review"){const nd=s.due-t;if(nd>d&&nd<F)B[nd].push([s,did,"r"])}};
+  for(let d=0;d<F;d++){
+    for(const [s,did,k] of B[d]){R[k][d]++;run(s,did,d)}
+    let rest=0;ids.forEach(did=>{const q=Math.max(0,Math.min(left[did],d===0?counts(did).n:lim[did]));left[did]-=q;R.n[d]+=q;rest+=left[did];for(let i=0;i<q;i++)run(null,did,d)});
+    if(R.end===null&&rest===0)R.end=d}
+  return R}
+function fcData(){FC.cache=FC.cache||{};const c=FC.cache;if(c[FC.real])return c[FC.real];const ids=FC.ctx.ids;let D;
+  if(!FC.real)D=fcSim(ids,0,null);
+  else{D=null;for(let i=0;i<FC_RUNS;i++){const r=fcSim(ids,FC_FAIL,rng32(4321+i*97));
+      if(!D)D=r;else{["n","r","o","l","x"].forEach(k=>r[k].forEach((v,j)=>D[k][j]+=v));if(r.end===null||D.end===null)D.end=null;else D.end=Math.max(D.end,r.end)}}
+    ["n","r","o","l","x"].forEach(k=>D[k]=D[k].map(v=>v/FC_RUNS))}
+  c[FC.real]=D;return D}
+const fcDayName=n=>{const d=n-dayNum(now()),w=cap(DIAS[new Date(dayTs(n)).getDay()])+" "+fmtDay(n);return d===0?"Hoy · "+w:d===1?"Mañana · "+w:w};
+const fcMin=(q,secs)=>{const m=q*secs/60;return q<=0?"0 min":m<1?"< 1 min":m<60?Math.round(m)+" min":Math.floor(m/60)+" h "+String(Math.round(m%60)).padStart(2,"0")+" min"};
+const FCOL={o:"var(--warn)",r:"var(--rev)",l:"var(--learn)",n:"var(--new)",x:"var(--imp)"};
+function fcChart(B,sel,showAll,avg,tick){const W=340,H=190,pb=30,pt=16,n=B.length,keys=FC.real?["o","r","l","n","x"]:["o","r","l","n"];
+  let mx=0;B.forEach(b=>mx=Math.max(mx,b.tot));
+  const step=mx<=4?1:mx<=10?2:mx<=25?5:mx<=60?10:mx<=150?25:mx<=400?50:Math.ceil(mx/5/100)*100,top=Math.max(step,Math.ceil(mx/step)*step);
+  const pl=12+6*String(top).length,y=v=>H-pb-(v/top)*(H-pb-pt),bw=(W-pl)/n;let g="";
+  for(let v=0;v<=top;v+=step)g+='<line class="grid" x1="'+pl+'" x2="'+W+'" y1="'+y(v)+'" y2="'+y(v)+'"/><text x="'+(pl-5)+'" y="'+(y(v)+3)+'" text-anchor="end">'+v+'</text>';
+  g+='<rect x="'+(pl+sel*bw)+'" y="'+(pt-14)+'" width="'+bw+'" height="'+(H-pb-pt+14)+'" fill="var(--accent)" fill-opacity=".1" rx="3"/>';
+  const imax=B.reduce((m,b,i)=>b.tot>B[m].tot?i:m,0);
+  B.forEach((b,i)=>{let acc=0;const x0=pl+i*bw+bw*.14,w=Math.max(1,bw*.72);
+    keys.forEach(k=>{const v=b[k];if(!(v>0))return;const y1=y(acc),y2=y(acc+v);acc+=v;g+='<rect x="'+x0+'" y="'+y2+'" width="'+w+'" height="'+Math.max(0,y1-y2)+'" fill="'+FCOL[k]+'"/>'});
+    const tv=Math.round(b.tot);if((showAll||i===sel||i===imax)&&tv>0)g+='<text class="fcv'+(i===sel?' on':'')+'" x="'+(pl+i*bw+bw/2)+'" y="'+(y(b.tot)-4)+'" text-anchor="middle">'+tv+'</text>';
+    const lb=tick(i);if(lb){const ed=n>7&&i===n-1,st0=n>7&&i===0,lx=ed?W-1:st0?pl+1:pl+i*bw+bw/2,an=ed?"end":st0?"start":"middle";lb.forEach((l,j)=>{if(l)g+='<text class="fcx'+(i===sel?' on':'')+'" x="'+lx+'" y="'+(H-pb+13+j*12)+'" text-anchor="'+an+'">'+esc(l)+'</text>'})}
+    g+='<rect class="fchit" data-b="'+i+'" x="'+(pl+i*bw)+'" y="0" width="'+bw+'" height="'+H+'" fill="transparent"/>'});
+  if(avg>0){const ya=y(avg);g+='<line x1="'+pl+'" x2="'+W+'" y1="'+ya+'" y2="'+ya+'" stroke="var(--fg)" stroke-opacity=".55" stroke-dasharray="4 3" stroke-width="1"/>'}
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Previsión de preguntas por '+(n>14?'día':'periodo')+'">'+g+'</svg>'}
+function renderForecast(){const box=$("#fcBox");if(!box||!FC.ctx)return;const {secs,failReal,newLeft}=FC.ctx,t=dayNum(now()),D=fcData(),real=FC.real;
+  const dayB=i=>{const b={n:D.n[i],r:D.r[i],o:D.o[i],l:D.l[i],x:real?D.x[i]:0};b.tot=b.n+b.r+b.o+b.l+b.x;return b};
+  const sumB=(a,z)=>{const s={n:0,r:0,o:0,l:0,x:0,tot:0};for(let i=a;i<z;i++){const b=dayB(i);for(const k in s)s[k]+=b[k]}return s};
+  const R=FC.range,weekly=R>30,B=weekly?Array.from({length:13},(_,w)=>Object.assign(sumB(w*7,w*7+7),{a:w*7,z:w*7+6})):Array.from({length:R},(_,i)=>Object.assign(dayB(i),{a:i,z:i}));
+  if(FC.sel>=B.length)FC.sel=0;const sel=FC.sel,rd=Math.round;
+  const s7=sumB(0,7).tot,s30=sumB(0,30).tot;let mxI=0;for(let i=1;i<30;i++)if(dayB(i).tot>dayB(mxI).tot)mxI=i;
+  const bName=b=>weekly?"Semana del "+fmtDay(t+b.a)+" al "+fmtDay(t+b.z):fcDayName(t+b.a);
+  const tick=weekly?(i=>i%2===0?[i===0?"hoy":fmtDay(t+i*7),""]:null)
+    :R===7?(i=>[i===0?"hoy":i===1?"mañ.":DIAS[new Date(dayTs(t+i)).getDay()],String(new Date(dayTs(t+i)).getDate())])
+    :(i=>i===0?["hoy",""]:new Date(dayTs(t+i)).getDay()===1?["lun",fmtDay(t+i)]:null);
+  const parts=b=>[[b.n,"nuevas","n"],[b.r,"repasos","r"],[b.l,"aprendiendo","l"],[b.o,"atrasadas","o"],[b.x,"repeticiones por fallo","x"]].filter(p=>rd(p[0])>0)
+    .map(p=>'<span><i style="background:'+FCOL[p[2]]+'"></i>'+rd(p[0])+' '+p[1]+'</span>').join("");
+  const sb=B[sel],avgV=weekly?sumB(0,91).tot/13:sumB(0,R).tot/R;
+  let h='<h3>Previsión</h3><p class="sub">'+(real
+    ?'Carga real: simula un '+Math.round(FC_FAIL*100)+' % de fallos (cada fallo se repite ese día y vuelve al siguiente)'+(failReal!=null?'. Tu fallo real en repasos (30 d): '+failReal+' %':'')
+    :'Preguntas que tendrás que responder cada día si las aciertas, incluidas las nuevas de tu límite diario')+'</p>'+
+    '<div class="fc-ctl">'+[[7,"7 días"],[30,"30 días"],[90,"3 meses"]].map(([v,l])=>'<button class="seg'+(R===v?" on":"")+'" data-fr="'+v+'">'+l+'</button>').join("")+
+    '<button class="seg fc-real'+(real?" on":"")+'" id="fcReal" aria-pressed="'+real+'">'+(real?"✓ ":"")+'Carga real ('+Math.round(FC_FAIL*100)+' % fallos)</button></div>'+
+    '<div class="kpis">'+kpi("Hoy",rd(dayB(0).tot),"≈ "+fcMin(dayB(0).tot,secs))+kpi("Mañana",rd(dayB(1).tot),"≈ "+fcMin(dayB(1).tot,secs))+
+      kpi("Próximos 7 días",rd(s7),"media "+dec(s7/7)+" al día")+kpi("Próximos 30 días",rd(s30),"media "+dec(s30/30)+" al día")+
+      kpi("Día más cargado",rd(dayB(mxI).tot),fcDayName(t+mxI).replace(" · ",", ")+" (30 d)")+
+      kpi("Nuevas sin ver",newLeft,newLeft?(D.end===null?"más de 3 meses a tu ritmo":D.end===0?"se acaban hoy":"a tu ritmo, se acaban el "+fmtDay(t+D.end)):"")+'</div>'+
+    '<div style="margin-top:14px">'+fcChart(B,sel,B.length<=14,avgV,tick)+'</div>'+
+    '<div class="leg">'+[["n","Nuevas"],["r","Repasos"],["l","Aprendiendo"],["o","Atrasadas"]].concat(real?[["x","Repeticiones por fallo"]]:[]).map(([k,l])=>'<span><i style="background:'+FCOL[k]+'"></i>'+l+'</span>').join("")+'<span><b class="fc-avg"></b>Media: '+dec(avgV)+(weekly?' por semana':' al día')+'</span></div>'+
+    '<div class="fc-info"><b>'+bName(sb)+'</b><div class="fc-big">'+rd(sb.tot)+(rd(sb.tot)===1?' pregunta':' preguntas')+' <em>≈ '+fcMin(sb.tot,secs)+'</em></div><div class="leg" style="margin-top:4px">'+(parts(sb)||'<span>Nada previsto</span>')+'</div></div>';
+  const rows=FC.all||B.length<=7?B:B.slice(0,7),tot=sumB(0,weekly?91:R);
+  const row=(lab,b,i)=>'<tr'+(i===sel?' class="sel"':'')+(i!=null?' data-b="'+i+'"':' class="tot"')+'><td>'+lab+'</td><td class="num"><b>'+rd(b.tot)+'</b></td><td class="num">'+rd(b.n)+'</td><td class="num">'+rd(b.r+b.l+b.o)+'</td>'+(real?'<td class="num">'+rd(b.x)+'</td>':'')+'<td class="num">'+fcMin(b.tot,secs).replace(" min","′").replace(" h ","h ")+'</td></tr>';
+  h+='<div class="tblwrap" style="margin-top:14px"><table class="plan fct"><thead><tr><th>'+(weekly?"Semana":"Día")+'</th><th>Total</th><th>Nuevas</th><th>Repasos</th>'+(real?'<th>Fallos</th>':'')+'<th>Tiempo</th></tr></thead><tbody>'+
+    rows.map((b,i)=>row(weekly?fmtDay(t+b.a)+" – "+fmtDay(t+b.z):(b.a===0?"Hoy":b.a===1?"Mañana":cap(DIAS[new Date(dayTs(t+b.a)).getDay()])+" "+fmtDay(t+b.a)),b,i)).join("")+
+    row("Total",tot,null)+'</tbody></table></div>'+
+    (B.length>7?'<div class="rowbtns" style="margin-top:8px"><button class="tbtn" id="fcAll">'+(FC.all?"Ver menos":"Ver "+(weekly?"las "+B.length+" semanas":"los "+B.length+" días"))+'</button></div>':'')+
+    '<p class="note" style="margin-top:10px">Repasos incluye las que estás aprendiendo y las atrasadas. Tiempo calculado con tu media de '+dec(secs,0)+' s por pregunta (con explicaciones).</p>';
+  box.innerHTML=h;
+  box.querySelectorAll("[data-fr]").forEach(b=>b.onclick=()=>{FC.range=+b.dataset.fr;FC.sel=0;FC.all=false;saveFC();renderForecast()});
+  $("#fcReal").onclick=()=>{FC.real=!FC.real;saveFC();renderForecast()};
+  box.querySelectorAll("[data-b]").forEach(el=>el.onclick=()=>{FC.sel=+el.dataset.b;renderForecast()});
+  if($("#fcAll"))$("#fcAll").onclick=()=>{FC.all=!FC.all;renderForecast()}}
 function renderStats(){fillDeckSelect();
   $("#periods").innerHTML=[[30,"1 mes"],[90,"3 meses"],[365,"1 año"]].map(([v,l])=>'<button class="seg'+(period===v?" on":"")+'" data-p="'+v+'">'+l+'</button>').join("");
   $("#periods").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{period=+b.dataset.p;renderStats()});
@@ -1320,12 +1416,10 @@ function renderStats(){fillDeckSelect();
       kpi("Próximo estudio",nx===null?"—":cap(relDay(nx)),nx===t?(k.n+k.l+k.r)+" preguntas":(nx!==null?fmtDay(nx):""))+
       kpi("Último estudio",ls?cap(relDay(dayNum(ls))):"Nunca",ls?fmtDay(dayNum(ls)):"")+kpi("Racha",streak+(streak===1?" día":" días"))+kpi("Días de estudio",sessions.length,sessions.length?"desde "+fmtDay(sessions[sessions.length-1]):"")+'</div>'+
       (sessions.length?'<p class="sub" style="margin:14px 0 0">Estudiado: '+sessions.slice(0,10).map(fmtDay).join(" · ")+(sessions.length>10?" …":"")+'</p>':'')+'</div>'}
-  const F=30,fr=new Array(F).fill(0),fl=new Array(F).fill(0);
-  cids.forEach(id=>{const s=stOf(id);if(!s)return;if(s.ty==="review"){const i=Math.max(0,s.due-t);if(i<F)fr[i]++}else if(isLearnT(s.ty)){const i=Math.max(0,dayNum(s.due)-t);if(i<F)fl[i]++}});
-  const ftot=fr.reduce((a,b)=>a+b,0)+fl.reduce((a,b)=>a+b,0);
-  h+='<div class="sec pad"><h3>Previsión</h3><p class="sub">Preguntas que vencen en los próximos 30 días (hoy incluye las atrasadas; sin contar nuevas)</p>'+
-    bars([fl,fr],[COL.l,COL.r],fr.map((_,i)=>relDay(t+i)),{tick:i=>i%5===0,tickLabel:i=>i===0?"hoy":"+"+i+"d"})+legend([[COL.l,"Aprendiendo"],[COL.r,"Repaso"]])+
-    '<div class="kpis" style="margin-top:12px">'+kpi("Vencen mañana",fr[1]+fl[1])+kpi("Media diaria",dec(ftot/F))+kpi("Nuevas sin ver",cids.filter(id=>!stOf(id)).length)+'</div></div>';
+  {const lg30=logs.filter(r=>dayNum(r.t)>t-30),src=lg30.length>=20?lg30:logs.length?logs:allLogs(),rv30=lg30.filter(r=>r.k===1);
+    const secs=src.length?Math.min(180,Math.max(3,src.reduce((a,r)=>a+ttOf(r),0)/src.length/1000)):25;
+    FC.ctx={ids,secs,failReal:rv30.length>=10?pct(rv30.filter(r=>r.e===1).length,rv30.length):null,newLeft:cids.filter(id=>!stOf(id)).length};FC.cache=null;FC.all=false}
+  h+='<div class="sec pad" id="fcBox"></div>';
   const WEEKS=26,perDay={};logs.forEach(r=>{const x=dayNum(r.t);perDay[x]=(perDay[x]||0)+1});let mxd=1;for(const k in perDay)mxd=Math.max(mxd,perDay[k]);
   const dow=(new Date(dayTs(t)).getDay()+6)%7,start=t-dow-(WEEKS-1)*7;let hm="",lastM=-1;
   for(let w=0;w<WEEKS;w++){const d0=start+w*7,m=new Date(dayTs(d0)).getMonth();if(m!==lastM&&(lastM===-1?new Date(dayTs(d0)).getDate()<=14:true)){hm+='<text x="'+(16+w*12.6)+'" y="9">'+MESES[m]+'</text>';lastM=m}
@@ -1364,6 +1458,7 @@ function renderStats(){fillDeckSelect();
     h+='<div class="sec pad"><h3>Por hora del día</h3><p class="sub">Respuestas según la hora'+(bestH?' · mejor acierto a las '+bestH[0]+' h ('+Math.round(bestH[2]*100)+' %)':'')+'</p>'+
     bars([hok,hr.map((v,i)=>v-hok[i])],[COL.r,COL.l],hr.map((_,i)=>i+" h"),{tick:i=>i%4===0,tickLabel:i=>i+"h"})+legend([[COL.r,"Acertadas"],[COL.l,"Falladas"]])+'</div>'}
   $("#statsBody").innerHTML=h;
+  renderForecast();
   $("#statsBody").querySelectorAll(".qitem").forEach(b=>b.onclick=()=>b.classList.toggle("open"));
   const heat=$("#heat");if(heat)heat.onclick=e=>{const x=e.target.dataset&&e.target.dataset.d;if(x===undefined)return;$("#heatInfo").textContent=cap(relDay(+x))+" ("+fmtDay(+x)+"): "+e.target.dataset.v+" respuestas"}}
 
