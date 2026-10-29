@@ -1,0 +1,49 @@
+Comprobado: 29/10/2026, 9:17:51
+Escritura de prueba: HTTP 200 OK
+Lectura: HTTP 200
+Colecciones: _ping, config, custom, marcas, push, resumen, revlog, srs, tests
+config/main · modificado 25/10/2026, 22:48:52 · 358 bytes
+srs/t11 · modificado 28/10/2026, 11:16:22 · 26 preguntas vistas
+srs/t12 · modificado 28/10/2026, 11:26:10 · 30 preguntas vistas
+srs/t17 · modificado 28/10/2026, 11:34:47 · 36 preguntas vistas
+srs/t18 · modificado 28/10/2026, 11:37:11 · 39 preguntas vistas
+srs/t27 · modificado 28/10/2026, 11:40:24 · 30 preguntas vistas
+srs/t28 · modificado 28/10/2026, 11:49:38 · 42 preguntas vistas
+srs/t29 · modificado 28/10/2026, 11:54:40 · 30 preguntas vistas
+srs/t30 · modificado 28/10/2026, 12:03:38 · 22 preguntas vistas
+srs/t31 · modificado 28/10/2026, 12:07:48 · 30 preguntas vistas
+srs/t32 · modificado 28/10/2026, 12:11:59 · 40 preguntas vistas
+srs/t33 · modificado 28/10/2026, 12:15:37 · 30 preguntas vistas
+srs/t34 · modificado 28/10/2026, 12:21:18 · 26 preguntas vistas
+srs/t35 · modificado 28/10/2026, 12:20:20 · 30 preguntas vistas
+srs/t38 · modificado 27/10/2026, 17:30:01 · 17 preguntas vistas
+srs/t39 · modificado 27/10/2026, 17:38:42 · 13 preguntas vistas
+srs/t4 · modificado 29/10/2026, 8:37:59 · 50 preguntas vistas
+srs/t40 · modificado 28/10/2026, 12:21:45 · 8 preguntas vistas
+srs/t41 · modificado 27/10/2026, 17:33:50 · 20 preguntas vistas
+srs/t42 · modificado 28/10/2026, 12:21:57 · 34 preguntas vistas
+srs/t45 · modificado 28/10/2026, 12:22:16 · 9 preguntas vistas
+srs/t5 · modificado 29/10/2026, 8:40:17 · 50 preguntas vistas
+srs/t6 · modificado 29/10/2026, 8:43:35 · 42 preguntas vistas
+srs/t7 · modificado 28/10/2026, 11:00:10 · 51 preguntas vistas
+srs/t8 · modificado 28/10/2026, 11:05:11 · 53 preguntas vistas
+srs/t9 · modificado 28/10/2026, 11:12:05 · 50 preguntas vistas
+revlog/2026-10-15 · modificado 1 · 10 respuestas, última 15/10/2026, 20:04:30
+revlog/2026-10-16 · modificado 1 · 7 respuestas, última 16/10/2026, 20:03:00
+revlog/2026-10-21 · modificado 21/10/2026, 17:08:27 · 54 respuestas, última 21/10/2026, 20:01:00
+revlog/2026-10-22 · modificado 22/10/2026, 22:06:08 · 110 respuestas, última 22/10/2026, 22:06:08
+revlog/2026-10-23 · modificado 23/10/2026, 17:25:15 · 130 respuestas, última 23/10/2026, 17:25:15
+revlog/2026-10-25 · modificado 25/10/2026, 22:40:55 · 15 respuestas, última 25/10/2026, 22:40:55
+revlog/2026-10-26 · modificado 26/10/2026, 17:00:55 · 432 respuestas, última 26/10/2026, 17:00:55
+revlog/2026-10-27 · modificado 27/10/2026, 18:41:21 · 355 respuestas, última 27/10/2026, 18:41:21
+revlog/2026-10-28 · modificado 28/10/2026, 12:22:16 · 207 respuestas, última 28/10/2026, 12:22:16
+revlog/2026-10-29 · modificado 29/10/2026, 8:43:35 · 28 respuestas, última 29/10/2026, 8:43:35
+custom/t11 · modificado 28/10/2026, 11:43:00 · 1412 bytes
+custom/t12 · modificado 28/10/2026, 11:42:11 · 1873 bytes
+custom/t17 · modificado 28/10/2026, 11:29:38 · 737 bytes
+custom/t29 · modificado 28/10/2026, 11:54:15 · 1225 bytes
+custom/t35 · modificado 28/10/2026, 11:42:46 · 684 bytes
+custom/t6 · modificado 28/10/2026, 10:44:57 · 895 bytes
+custom/t9 · modificado 28/10/2026, 11:44:55 · 628 bytes
+resumen/main · modificado 29/10/2026, 8:43:42 · generado 29/10/2026, 8:43:44, hoy 28 respondidas
+Dispositivos con avisos: 1
