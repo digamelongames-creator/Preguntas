@@ -1,5 +1,5 @@
 // Mazos Oposición · service worker: funciona sin conexión.
-const CACHE = "mazos-v24";
+const CACHE = "mazos-v25";
 const SHELL = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png"];
 const CDN = ["cdnjs.cloudflare.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 
