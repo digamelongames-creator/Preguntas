@@ -652,18 +652,40 @@ function plan(){const n=now(),t=dayNum(n);if(PLAN&&PLAN.day===t&&PLAN.ver===STVE
     any=true;while(left>0&&any){any=false;for(const id of rot){if(left<=0)break;if(take[id]<(news[id]||[]).length){take[id]++;left--;any=true}}}
     for(const id of rot)for(let i=0;i<take[id];i++){P.ids.add(news[id][i]);P.newToday++}}
   return PLAN=P}
-function counts(did){if(did==="_marks")return marksCounts();const P=plan(),eot=dayTs(P.day+1),st=ST[did]||{};let nw=0,ln=0,rv=0,left=0;
+/* ---------- sesión mixta: N preguntas del plan de hoy, de todos los temas ---------- */
+let MIX=null;
+function mixPending(cid,P){const c=CARDS[cid];if(!c)return false;const s=(ST[c.did]||{})[cid],ty=typeOf(s);
+  if(ty==="new")return true;if(isLearnT(ty))return s.due<dayTs(P.day+1);return s.due<=P.day}
+function buildMix(n){const P=plan(),rv=[],nw={};
+  for(const cid of P.ids){if(!mixPending(cid,P))continue;const c=CARDS[cid],s=(ST[c.did]||{})[cid],ty=typeOf(s);
+    if(ty==="new")(nw[c.did]=nw[c.did]||[]).push(cid);else rv.push([isLearnT(ty)?dayNum(s.due):s.due,isLearnT(ty)?s.due:0,cid])}
+  rv.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const ids=rv.map(x=>x[2]);
+  const rot=deckList().map(d=>d.id).filter(id=>nw[id]);rot.forEach(id=>nw[id].sort((a,b)=>CARDS[a].ord-CARDS[b].ord));
+  for(let i=0,any=true;any;i++){any=false;for(const id of rot)if(nw[id][i]){ids.push(nw[id][i]);any=true}}
+  return ids.slice(0,n)}
+function startMix(n){const ids=buildMix(n);if(!ids.length){toast(PLAN&&PLAN.weekend?"Fin de semana: hoy no toca estudiar":"No quedan preguntas pendientes hoy");return}
+  MIX={n,ids};if(ids.length<n)toast("Solo quedan "+ids.length+" preguntas pendientes hoy; van todas");go("review",{deck:"_mix"})}
+function mixCounts(){const P=plan();let nw=0,ln=0,rv=0;for(const cid of MIX?MIX.ids:[]){if(!mixPending(cid,P))continue;const c=CARDS[cid],ty=typeOf((ST[c.did]||{})[cid]);
+  if(ty==="new")nw++;else if(isLearnT(ty))ln++;else rv++}return{n:nw,l:ln,r:rv,total:MIX?MIX.ids.length:0,newLeft:0}}
+function nextMixed(avoid){const n=now(),t=dayNum(n),learnNow=[],rev=[],news=[],ahead=[],sOf=cid=>(ST[CARDS[cid].did]||{})[cid];
+  for(const cid of MIX?MIX.ids:[]){if(!CARDS[cid])continue;const s=sOf(cid),ty=typeOf(s);
+    if(ty==="new")news.push(cid);else if(isLearnT(ty)){if(s.due<=n)learnNow.push(cid);else if(s.due<=n+AHEAD)ahead.push(cid)}else if(s.due<=t)rev.push(cid)}
+  const byDue=(a,b)=>sOf(a).due-sOf(b).due;learnNow.sort(byDue);ahead.sort(byDue);rev.sort((a,b)=>sOf(a).due-sOf(b).due||Math.random()-.5);
+  const first=l=>l.find(c=>c!==avoid);let p=first(learnNow);
+  if(!p){const r=first(rev),w=first(news);p=r&&w?(sess.alt++%3===2?w:r):(r||w)}
+  if(!p)p=first(ahead);if(!p)p=learnNow[0]||rev[0]||news[0]||ahead[0]||null;return p}
+function counts(did){if(did==="_marks")return marksCounts();if(did==="_mix")return mixCounts();const P=plan(),eot=dayTs(P.day+1),st=ST[did]||{};let nw=0,ln=0,rv=0,left=0;
   for(const cid of DCARDS[did]||[]){const s=st[cid],ty=typeOf(s);if(ty==="new")left++;if(!P.ids.has(cid))continue;
     if(ty==="new")nw++;else if(isLearnT(ty)){if(s.due<eot)ln++}else rv++}
   return{n:nw,l:ln,r:rv,total:(DCARDS[did]||[]).length,newLeft:left}}
-function nextStudy(did){if(did==="_marks")return null;const t=dayNum(now()),k=counts(did);if(k.n+k.l+k.r>0)return t;let m=Infinity;const st=ST[did]||{};
+function nextStudy(did){if(did==="_marks"||did==="_mix")return null;const t=dayNum(now()),k=counts(did);if(k.n+k.l+k.r>0)return t;let m=Infinity;const st=ST[did]||{};
   for(const cid of DCARDS[did]||[]){const s=st[cid];if(!s)continue;if(s.ty==="review")m=Math.min(m,Math.max(s.due,t+1));else if(isLearnT(s.ty))m=Math.min(m,Math.max(dayNum(s.due),t+1))}
   if(k.newLeft>0&&!dcfg(did).paused)m=Math.min(m,t+1);if(m===Infinity)return null;while(isWeekend(m))m++;return m}
 function allLogs(){const out=[];for(const k in LOG)for(const r of LOG[k])out.push(r);return out}
 function lastStudy(did){let m=null;for(const k in LOG)for(const r of LOG[k])if(r.d===did&&(m===null||r.t>m))m=r.t;return m}
 
 let sess={alt:0,last:null,done:0,ok:0,bad:0,start:0,hist:[]};
-function nextCard(did,avoid){if(did==="_marks")return nextMarked(avoid);const n=now(),t=dayNum(n),st=ST[did]||{},P=plan();
+function nextCard(did,avoid){if(did==="_marks")return nextMarked(avoid);if(did==="_mix")return nextMixed(avoid);const n=now(),t=dayNum(n),st=ST[did]||{},P=plan();
   const learnNow=[],rev=[],news=[],ahead=[];
   for(const cid of DCARDS[did]||[]){if(!P.ids.has(cid))continue;const s=st[cid],ty=typeOf(s);
     if(ty==="new")news.push(cid);else if(isLearnT(ty)){if(s.due<=n)learnNow.push(cid);else if(s.due<=n+AHEAD)ahead.push(cid)}else if(s.due<=t)rev.push(cid)}
@@ -693,7 +715,7 @@ function go(v,opts){view=v;if(opts&&opts.deck)curDeck=opts.deck;
   document.querySelectorAll(".dritem").forEach(b=>b.classList.toggle("on",b.dataset.go===v));
   if(v==="decks"){$("#title").textContent="Mazos";$("#vDecks").hidden=false;renderDecks()}
   if(v==="overview"){$("#title").textContent=DECKS[curDeck]?.name||"Mazo";$("#vOverview").hidden=false;renderOverview()}
-  if(v==="review"){$("#title").textContent=DECKS[curDeck]?.name||(curDeck==="_marks"?"Preguntas marcadas":"");$("#vReview").hidden=false;sess={alt:0,last:null,done:0,ok:0,bad:0,start:now(),hist:[]};undo=null;showNext()}
+  if(v==="review"){$("#title").textContent=DECKS[curDeck]?.name||(curDeck==="_marks"?"Preguntas marcadas":curDeck==="_mix"?"Mezcla · "+(MIX?MIX.ids.length:0)+" preguntas":"");$("#vReview").hidden=false;sess={alt:0,last:null,done:0,ok:0,bad:0,start:now(),hist:[]};undo=null;showNext()}
   if(v==="testov"){$("#title").textContent="Test "+curTest;$("#vTestOv").hidden=false;renderTestOv()}
   if(v==="test"){$("#title").textContent=TR&&TR.T?"Test "+TR.T.n+(TR.T.retry?" · falladas":""):"Test";$("#vTest").hidden=false;if(TR&&TR.result)renderTestResult();else renderTest()}
   if(v==="estudio"){$("#title").textContent="Estudio";$("#vEstudio").hidden=false;renderEstudio()}
@@ -703,7 +725,7 @@ function go(v,opts){view=v;if(opts&&opts.deck)curDeck=opts.deck;
   if(v==="stats"){$("#title").textContent="Estadísticas";$("#vStats").hidden=false;renderStats()}
   if(v==="settings"){$("#title").textContent="Ajustes";$("#vSettings").hidden=false;renderSettings()}
   closeDrawer();window.scrollTo(0,0)}
-$("#navBtn").onclick=()=>{if(view==="estq"){ER=null;go("estudio");return}if(view==="test"){if(TR&&!TR.result)testSaveProg();TR=null;go("testov");return}if(view==="testov"){go("decks");return}if(view==="voice"){voiceExit();return}if(view==="review"&&curDeck==="_marks"){go("marks");return}if(view==="review"){const d=curDeck;go("overview");if(sess.done)maybeRefuerzo(d)}else if(view==="overview")go("decks");else openDrawer()};
+$("#navBtn").onclick=()=>{if(view==="estq"){ER=null;go("estudio");return}if(view==="test"){if(TR&&!TR.result)testSaveProg();TR=null;go("testov");return}if(view==="testov"){go("decks");return}if(view==="voice"){voiceExit();return}if(view==="review"&&curDeck==="_marks"){go("marks");return}if(view==="review"&&curDeck==="_mix"){MIX=null;go("decks");return}if(view==="review"){const d=curDeck;go("overview");if(sess.done)maybeRefuerzo(d)}else if(view==="overview")go("decks");else openDrawer()};
 function openDrawer(){$("#scrim").hidden=false;requestAnimationFrame(()=>$("#drawer").classList.add("open"))}
 function closeDrawer(){$("#drawer").classList.remove("open");if(!$("#sheetHost").innerHTML)$("#scrim").hidden=true}
 $("#scrim").onclick=()=>{closeSheet();closeDrawer()};
@@ -786,12 +808,13 @@ function cardForm(did,cid){const c=cid?CARDS[cid]:null,kind=c?c.kind:"test";
       $("#cfQ").value="";[0,1,2].forEach(i=>{const e=$("#cfO"+i);if(e)e.value=""});if($("#cfE"))$("#cfE").value="";if($("#cfR"))$("#cfR").value="";$("#cfQ").focus();toast("Pregunta añadida");if(view==="decks")renderDecks()}}}
 
 /* ---------- importación ---------- */
-$("#fab").onclick=()=>{const s=sheet('<h4>Añadir</h4><button class="sitem" data-k="imp">'+I.file+'Importar Excel / CSV</button><button class="sitem" data-k="deck">'+I.deck+'Crear mazo</button><button class="sitem" data-k="card">'+I.add+'Añadir pregunta</button>'+
+$("#fab").onclick=()=>{const s=sheet('<h4>Estudiar mezclado</h4><p class="note">Coge preguntas pendientes de hoy de todos los temas y las pone juntas. Cuentan igual que hacerlas por separado.</p><div class="rowbtns" style="justify-content:flex-start;margin:10px 0 4px">'+[25,50,100].map(n=>'<button class="chipbtn" data-mix="'+n+'">'+n+' preguntas</button>').join("")+'</div><h4>Añadir</h4><button class="sitem" data-k="imp">'+I.file+'Importar Excel / CSV</button><button class="sitem" data-k="deck">'+I.deck+'Crear mazo</button><button class="sitem" data-k="card">'+I.add+'Añadir pregunta</button>'+
   '<p class="note" style="padding:8px 4px 4px">Tipo test: A pregunta, B-C-D opciones, E letra correcta (A/B/C), F explicación (opcional), G tema (opcional).<br>Pregunta y respuesta: A pregunta, B respuesta, C tema (opcional).</p>');
+  s.querySelectorAll("[data-mix]").forEach(b=>b.onclick=()=>{closeSheet();startMix(+b.dataset.mix)});
   s.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{closeSheet();const k=b.dataset.k;
     if(k==="imp"){$("#fileIn").value="";$("#fileIn").click()}
     if(k==="deck")newDeckForm();
-    if(k==="card")cardForm(curDeck||deckList()[0].id)})};
+    if(k==="card")cardForm(DECKS[curDeck]?curDeck:deckList()[0].id)})};
 function newDeckForm(cb){const s=sheet('<h4>Nuevo mazo</h4><div class="field"><label for="nd">Nombre</label><input id="nd" placeholder="Tema 21 · Derecho procesal penal"></div><div class="rowbtns"><button class="tbtn" data-x>Cancelar</button><button class="tbtn" data-ok>Crear</button></div>');
   s.querySelector("[data-x]").onclick=closeSheet;s.querySelector("[data-ok]").onclick=()=>{const v=$("#nd").value.trim();if(v){const id=makeDeck(v);closeSheet();cb?cb(id):renderDecks()}}}
 function makeDeck(name){const m=name.match(/tema\s*(\d+)/i);if(m){const did="t"+parseInt(m[1],10);if(DECKS[did])return did;
@@ -883,11 +906,11 @@ function renderCard(){const k=renderBar(),v=$("#vReview"),left=k.n+k.l+k.r,prog=
   if(hpos>=0){const h=sess.hist[hpos];v.innerHTML=head+cardHtml(Object.assign({ro:true,phase:"a",num:hpos+1,total:sess.done+left},h))+'</div>';wireCard(true);return}
   if(!cur){const n2=nextStudy(curDeck),lrn=(DCARDS[curDeck]||[]).map(stOf).filter(s=>s&&isLearnT(s.ty)).sort((a,b)=>a.due-b.due)[0];
     const later=lrn&&dayNum(lrn.due)===dayNum(now())?"Quedan preguntas en aprendizaje; vuelve en unos "+Math.max(1,Math.round((lrn.due-now()-AHEAD)/60e3))+" min.":"Próximo estudio: "+(n2===null?"—":relDay(n2))+".";
-    v.innerHTML=head+'<div class="rv-card"><div class="rv-done">'+(sess.done?'<div class="rv-big">'+sess.ok+' / '+sess.done+'</div><p>Tema terminado por hoy · '+pct(sess.ok,sess.done)+' % de acierto</p>':'<div class="rv-big">✓</div><p>No hay preguntas pendientes en este tema.</p>')+
+    v.innerHTML=head+'<div class="rv-card"><div class="rv-done">'+(sess.done?'<div class="rv-big">'+sess.ok+' / '+sess.done+'</div><p>'+(curDeck==="_mix"?"Mezcla terminada":"Tema terminado por hoy")+' · '+pct(sess.ok,sess.done)+' % de acierto</p>':'<div class="rv-big">✓</div><p>No hay preguntas pendientes en este tema.</p>')+
       '<p style="font-size:.85rem">'+later+'</p><p class="ref-status" id="refStatus">'+refStatusText(curDeck)+'</p>'+
       '<div class="rv-actions" style="width:100%"><button class="navbtn" id="prevQ" aria-label="Pregunta anterior"'+(sess.hist.length?"":" disabled")+'>‹</button><button class="next-btn" id="backDecks">Volver a los mazos</button></div></div></div></div>';
-    $("#backDecks").onclick=()=>go("decks");$("#prevQ").onclick=goBack;
-    if(sess.done)maybeRefuerzo(curDeck);return}
+    $("#backDecks").onclick=()=>{MIX=null;go("decks")};$("#prevQ").onclick=goBack;
+    if(sess.done&&curDeck!=="_mix"&&curDeck!=="_marks")maybeRefuerzo(curDeck);return}
   v.innerHTML=head+cardHtml({cid:cur,phase,order,chosen,grade,auto,ms:elapsed,ro:false,num:sess.done+1,total:sess.done+left})+'</div>';wireCard(false)}
 function wireCard(ro){const v=$("#vReview"),c=CARDS[ro?sess.hist[hpos].cid:cur];
   $("#prevQ").onclick=goBack;
