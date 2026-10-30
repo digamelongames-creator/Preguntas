@@ -373,6 +373,27 @@ table.plan{width:100%;border-collapse:collapse;font-size:13.5px}
 .estema .deck .dn .nm{color:var(--fg);font-weight:500}
 .estnote{padding-block:10px;font-size:12.5px;color:var(--muted);background:var(--surface)}
 .estref{display:block;margin-top:8px;font-size:.84rem;color:var(--rv-muted)}
+/* Acceso y usuarios */
+#accLogin{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+.acc-card{background:var(--surface);border-radius:12px;box-shadow:var(--shadow);padding:24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px}
+.acc-logo{font-size:20px;font-weight:500;color:var(--accent)}.acc-sub{font-size:13px;color:var(--muted);margin-top:-8px}
+.acc-card .fbtn{padding:13px;font-size:15px}.acc-err{color:var(--learn);font-size:13.5px;min-height:1.2em;margin:0}
+.accname{display:block;margin-top:6px;font-size:12.5px;opacity:.85}
+.utable{overflow-x:auto;background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.utable table{width:100%;border-collapse:collapse;font-size:13.5px}
+.utable th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.utable td{padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums}
+.utable tr[data-uopen]{cursor:pointer}.utable td small{display:block;color:var(--muted);font-size:11.5px}
+.uwarn{color:var(--learn)!important;font-weight:500}
+.udet{display:flex;flex-direction:column;gap:12px;background:var(--surface);margin-top:12px}
+.utemas{display:flex;flex-direction:column;gap:2px;max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.utemas label{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px}.utemas b{color:var(--accent);min-width:22px}
+.ukpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ukpi div{background:var(--surface2);border-radius:8px;padding:10px;text-align:center}.ukpi b{display:block;font-size:20px;font-variant-numeric:tabular-nums}.ukpi span{font-size:11.5px;color:var(--muted)}
+.udias{display:flex;flex-direction:column;gap:6px}
+.udia{display:grid;grid-template-columns:92px 1fr;gap:4px 10px;align-items:center;font-size:12.5px}
+.ud-d{color:var(--muted)}.ud-bar{height:8px;background:var(--heat0);border-radius:4px;overflow:hidden}.ud-bar i{display:block;height:100%;background:var(--accent)}
+.ud-n{grid-column:2;color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -403,6 +424,7 @@ table.plan{width:100%;border-collapse:collapse;font-size:13.5px}
   <section id="vEstudio" hidden></section>
   <section id="vEstQ" hidden></section>
   <section id="vStats" hidden><div class="stbar pad" id="periods"></div><div id="statsBody"></div></section>
+  <section id="vUsers" hidden></section>
   <section id="vSettings" hidden><div class="form pad" id="settingsBody"></div></section>
 </main>
 
@@ -411,13 +433,15 @@ table.plan{width:100%;border-collapse:collapse;font-size:13.5px}
 
 <div class="scrim" id="scrim" hidden></div>
 <nav class="drawer" id="drawer" aria-label="Navegación">
-  <div class="drhead"><b>Mazos Oposición</b><span>Policía Nacional · repaso espaciado</span></div>
+  <div class="drhead"><b>Mazos Oposición</b><span>Policía Nacional · repaso espaciado</span><span id="accName" class="accname"></span></div>
   <button class="dritem" data-go="decks"><svg viewBox="0 0 24 24"><path d="M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 14H8V4h12z"/></svg>Mazos</button>
   <button class="dritem" data-go="estudio"><svg viewBox="0 0 24 24"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5z"/></svg>Estudio</button>
   <button class="dritem" id="voiceDr"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11z"/></svg>Estudiar por voz</button>
   <button class="dritem" data-go="marks"><svg viewBox="0 0 24 24"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>Marcadas</button>
   <button class="dritem" data-go="stats"><svg viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/></svg>Estadísticas</button>
   <button class="dritem" data-go="settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58-1.92-3.32-2.39.96a7.03 7.03 0 0 0-1.63-.94L14.87 3.5h-3.84l-.36 2.68c-.59.24-1.13.56-1.63.94l-2.39-.96-1.92 3.32 2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58 1.92 3.32 2.39-.96c.5.38 1.04.7 1.63.94l.36 2.68h3.84l.36-2.68c.59-.24 1.13-.56 1.63-.94l2.39.96 1.92-3.32zM12.95 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>Ajustes</button>
+  <button class="dritem" data-go="users" id="usersDr" hidden><svg viewBox="0 0 24 24"><path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05A4.22 4.22 0 0 1 17 16.5V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Usuarios</button>
+  <button class="dritem" id="logoutDr"><svg viewBox="0 0 24 24"><path d="M10.09 15.59 11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67zM19 3H5a2 2 0 0 0-2 2v4h2V5h14v14H5v-4H3v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>Cerrar sesión</button>
   <button class="dritem" id="fsBtn"><svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z"/></svg>Pantalla completa</button>
 </nav>
 <div id="sheetHost"></div>
@@ -516,10 +540,10 @@ let MARKS={};
 const snapshot=()=>({v:2,CFG,ST,LOG,CUSTOM,REF,MARKS,TRES,DOCTS});
 let localT=null;
 function saveLocalSoon(){clearTimeout(localT);localT=setTimeout(saveLocalNow,400)}
-async function saveLocalNow(){clearTimeout(localT);const s=JSON.stringify(snapshot());if(!(await idbSet("state",s))){try{localStorage.setItem(LKEY,s)}catch(e){toast("No se pudo guardar el progreso en el dispositivo")}}}
+async function saveLocalNow(){clearTimeout(localT);const s=JSON.stringify(snapshot());if(!(await idbSet(accFriend()?"state:"+ACC.u:"state",s))){try{localStorage.setItem(accFriend()?LKEY+"."+ACC.u:LKEY,s)}catch(e){toast("No se pudo guardar el progreso en el dispositivo")}}}
 function applyState(r){bump();CFG=Object.assign({newPerDay:10,decks:{},customDecks:{}},r.CFG||{});migCap();ST=r.ST||{};LOG=r.LOG||{};CUSTOM=r.CUSTOM||{};REF=r.REF||{};MARKS=r.MARKS||{};TRES=Object.assign({results:{},prog:{}},r.TRES||{});
   for(const k in DOCTS)delete DOCTS[k];Object.assign(DOCTS,r.DOCTS||{})}
-async function loadLocal(){idb=await idbOpen();let s=await idbGet("state");if(!s){try{s=localStorage.getItem(LKEY)}catch(e){}}
+async function loadLocal(){idb=await idbOpen();let s=await idbGet(accFriend()?"state:"+ACC.u:"state");if(!s){try{s=localStorage.getItem(accFriend()?LKEY+"."+ACC.u:LKEY)}catch(e){}}
   if(s){try{applyState(JSON.parse(s));return true}catch(e){}}return false}
 function allPaths(){const p=["config/main","marcas/main","tests/main"];Object.keys(ST).forEach(i=>p.push("srs/"+i));Object.keys(LOG).forEach(i=>p.push("revlog/"+i));Object.keys(CUSTOM).forEach(i=>p.push("custom/"+i));Object.keys(REF).forEach(i=>p.push("refuerzo/"+i));return p}
 function docData(path){const i=path.indexOf("/"),col=path.slice(0,i),id=path.slice(i+1);
@@ -529,17 +553,17 @@ function setDoc(path,v){bump();const i=path.indexOf("/"),col=path.slice(0,i),id=
   if(col==="config"){CFG=Object.assign({newPerDay:10,decks:{},customDecks:{}},v);migCap()}else if(col==="srs")ST[id]=v.cards||{};
   else if(col==="revlog")LOG[id]=v.entries||[];else if(col==="custom")CUSTOM[id]=v;else if(col==="refuerzo")REF[id]=v;else if(col==="marcas")MARKS=v.m||{};else if(col==="tests")TRES=Object.assign({results:{},prog:{}},v)}
 const pending=new Set();let pushT=null;
-function touch(path){DOCTS[path]=now();pending.add(path);DOCTS["resumen/main"]=now();pending.add("resumen/main");saveLocalSoon();if(SYNC.url){clearTimeout(pushT);pushT=setTimeout(pushRemote,2000)}}
+function touch(path){accActSoon();DOCTS[path]=now();pending.add(path);DOCTS["resumen/main"]=now();pending.add("resumen/main");saveLocalSoon();if(SYNC.url){clearTimeout(pushT);pushT=setTimeout(pushRemote,2000)}}
 const saveSrs=did=>{bump();touch("srs/"+did)},saveLog=ds=>{bump();touch("revlog/"+ds)},saveCfg=()=>{bump();touch("config/main")},saveCustom=did=>touch("custom/"+did),saveRef=did=>touch("refuerzo/"+did),saveMarks=()=>touch("marcas/main");
 const fbBase=()=>SYNC.url.trim().replace(/\/+$/,"")+"/mazosOposicion";
 let pushing=false;
-async function pushRemote(){if(!SYNC.url||!pending.size||pushing)return;if(!navigator.onLine){setSync("sin conexión");return}
+async function pushRemote(){if(accFriend())return;if(!SYNC.url||!pending.size||pushing)return;if(!navigator.onLine){setSync("sin conexión");return}
   pushing=true;const paths=[...pending];pending.clear();setSync("sincronizando…");
   const body={};paths.forEach(p=>{body[p]={_ts:DOCTS[p]||now(),json:JSON.stringify(docData(p))}});
   try{const r=await fetch(fbBase()+".json",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify(body)});if(!r.ok)throw new Error(await fbErr(r));setSync("");lastSyncErr=""}
   catch(e){paths.forEach(p=>pending.add(p));setSync("sin sincronizar");lastSyncErr=e.message}
   finally{pushing=false}}
-async function pullRemote(){if(!SYNC.url)return false;if(!navigator.onLine){setSync("sin conexión");return false}
+async function pullRemote(){if(accFriend())return false;if(!SYNC.url)return false;if(!navigator.onLine){setSync("sin conexión");return false}
   setSync("sincronizando…");
   try{const r=await fetch(fbBase()+".json");if(!r.ok)throw new Error(await fbErr(r));lastSyncErr="";const data=await r.json()||{};let changed=false;const seen=new Set();
     for(const col of Object.keys(data))for(const id of Object.keys(data[col]||{})){const p=col+"/"+id,rem=data[col][id];seen.add(p);if(!rem||typeof rem.json!=="string")continue;
@@ -710,7 +734,7 @@ function commit(cid,ease,ms,o,tt){const c=CARDS[cid],did=c.did,n=now(),st=ST[did
 let view="decks",curDeck=null,statDeck="all",period=30;
 const ICON_MENU='<path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/>',ICON_BACK='<path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/>';
 function go(v,opts){view=v;if(opts&&opts.deck)curDeck=opts.deck;
-  ["vDecks","vOverview","vReview","vStats","vSettings","vVoice","vMarks","vTestOv","vTest","vEstudio","vEstQ"].forEach(id=>$("#"+id).hidden=true);
+  ["vDecks","vOverview","vReview","vStats","vSettings","vVoice","vMarks","vTestOv","vTest","vEstudio","vEstQ","vUsers"].forEach(id=>$("#"+id).hidden=true);
   const sub=v==="overview"||v==="review"||v==="voice"||v==="testov"||v==="test"||v==="estq";document.body.classList.toggle("reviewing",v==="review");
   $("#navIcon").innerHTML=sub?ICON_BACK:ICON_MENU;$("#navBtn").setAttribute("aria-label",sub?"Volver":"Menú");
   $("#fab").hidden=v!=="decks";$("#barCounts").hidden=v!=="review";$("#undoBtn").hidden=v!=="review"||!undo;$("#editBtn").hidden=v!=="review";$("#statDeck").hidden=v!=="stats";
@@ -725,6 +749,7 @@ function go(v,opts){view=v;if(opts&&opts.deck)curDeck=opts.deck;
   if(v==="marks"){$("#title").textContent="Preguntas marcadas";$("#vMarks").hidden=false;renderMarks()}
   if(v==="voice"){$("#title").textContent="Estudiar por voz";$("#vVoice").hidden=false;renderVoice()}
   if(v==="stats"){$("#title").textContent="Estadísticas";$("#vStats").hidden=false;renderStats()}
+  if(v==="users"){$("#title").textContent="Usuarios";$("#vUsers").hidden=false;renderUsers()}
   if(v==="settings"){$("#title").textContent="Ajustes";$("#vSettings").hidden=false;renderSettings()}
   closeDrawer();window.scrollTo(0,0)}
 $("#navBtn").onclick=()=>{if(view==="estq"){ER=null;go("estudio");return}if(view==="test"){if(TR&&!TR.result)testSaveProg();TR=null;go("testov");return}if(view==="testov"){go("decks");return}if(view==="voice"){voiceExit();return}if(view==="review"&&curDeck==="_marks"){go("marks");return}if(view==="review"&&curDeck==="_mix"){MIX=null;go("decks");return}if(view==="review"){const d=curDeck;go("overview");if(sess.done)maybeRefuerzo(d)}else if(view==="overview")go("decks");else openDrawer()};
@@ -1598,13 +1623,163 @@ function renderSettings(){
   $("#wipe").onclick=()=>confirmBox("¿Borrar todo el historial y empezar de cero? Las preguntas se mantienen.","Reiniciar",()=>{
     Object.keys(ST).forEach(did=>{ST[did]={};saveSrs(did)});Object.keys(LOG).forEach(ds=>{LOG[ds]=[];saveLog(ds)});go("decks");toast("Progreso reiniciado")})}
 
+
+/* ---------- acceso de usuarios (amigos) y control de actividad ---------- */
+// Usuarios, contraseñas y temas viven en Firebase: mazosOposicion/amigos/accesos.
+// La primera vez, Diego elige su contraseña y la app crea usuario01…05 con contraseñas aleatorias.
+const ACC_DB=DEFAULT_FB+"/mazosOposicion/amigos";
+const ACC_SKEY="mazosOposicion.sesion",ACC_CKEY="mazosOposicion.accesosCache",ACC_DKEY="mazosOposicion.dispositivo";
+let ACC=null,ACCLIST=null;
+const accFriend=()=>!!(ACC&&!ACC.admin);
+function accFetch(path,opts){const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),8000);
+  return fetch(ACC_DB+path+".json",Object.assign({signal:ctl.signal},opts||{})).finally(()=>clearTimeout(tm))}
+async function accLoadList(){
+  try{const r=await accFetch("/accesos");if(!r.ok)throw new Error(await fbErr(r));let d=await r.json();
+    if(!d||typeof d!=="object"){ACCLIST={};return true}
+    ACCLIST=d;try{localStorage.setItem(ACC_CKEY,JSON.stringify(d))}catch(e){}return true}
+  catch(e){try{ACCLIST=JSON.parse(localStorage.getItem(ACC_CKEY)||"null")}catch(er){}if(!ACCLIST)ACCLIST={};return false}}
+const accTemas=u=>{const t=u&&u.temas;if(t==="todos")return"todos";return Array.isArray(t)?t.map(Number):(t&&typeof t==="object"?Object.values(t).map(Number):[])};
+function accCheck(u,c){const x=ACCLIST&&ACCLIST[u];if(!x)return"Usuario o contraseña incorrectos";if(String(x.clave)!==String(c))return"Usuario o contraseña incorrectos";if(x.activo===false)return"Tu cuenta está desactivada. Habla con Diego.";return""}
+function accSet(u){const x=ACCLIST[u];ACC={u,admin:!!x.admin,nombre:x.nombre||u,temas:x.admin?"todos":accTemas(x)}}
+const temaOk=n=>!ACC||ACC.temas==="todos"||ACC.temas.includes(parseInt(n,10));
+function accLoginScreen(msg){return new Promise(res=>{const d=document.createElement("div");d.id="accLogin";
+  d.innerHTML='<form class="acc-card" autocomplete="on"><div class="acc-logo">Mazos Oposición</div><div class="acc-sub">Policía Nacional · acceso</div>'+
+    '<div class="field"><label for="accU">Usuario</label><input id="accU" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>'+
+    '<div class="field"><label for="accC">Contraseña</label><input id="accC" type="password" autocomplete="current-password" required></div>'+
+    '<button class="fbtn" type="submit">Entrar</button><p class="acc-err" role="alert">'+esc(msg||"")+'</p></form>';
+  document.body.appendChild(d);const f=d.querySelector("form");
+  f.onsubmit=async e=>{e.preventDefault();const u=$("#accU").value.trim().toLowerCase(),c=$("#accC").value;
+    f.querySelector("button").disabled=true;await accLoadList();f.querySelector("button").disabled=false;
+    const err=accCheck(u,c);if(err){d.querySelector(".acc-err").textContent=err;return}
+    try{localStorage.setItem(ACC_SKEY,JSON.stringify({u,c}))}catch(e){}d.remove();accSet(u);res()}})}
+function accPw(){const a="abcdefghjkmnpqrstuvwxyz23456789";let pw="";const rnd=new Uint32Array(8);crypto.getRandomValues(rnd);rnd.forEach(v=>pw+=a[v%a.length]);return pw}
+function accSetupScreen(){return new Promise(res=>{const d=document.createElement("div");d.id="accLogin";
+  d.innerHTML='<form class="acc-card"><div class="acc-logo">Configurar acceso</div><div class="acc-sub">Primera vez: elige tu contraseña de administrador. Se crearán usuario01 a usuario05 con contraseñas aleatorias, que verás en la pestaña Usuarios.</div>'+
+    '<div class="field"><label for="accU">Tu usuario</label><input id="accU" value="diego" autocomplete="username" autocapitalize="none"></div>'+
+    '<div class="field"><label for="accC">Tu contraseña</label><input id="accC" type="password" autocomplete="new-password" minlength="6" required></div>'+
+    '<div class="field"><label for="accC2">Repite la contraseña</label><input id="accC2" type="password" autocomplete="new-password" required></div>'+
+    '<button class="fbtn" type="submit">Crear</button><p class="acc-err" role="alert"></p></form>';
+  document.body.appendChild(d);const f=d.querySelector("form"),err=t=>d.querySelector(".acc-err").textContent=t;
+  f.onsubmit=async e=>{e.preventDefault();const u=$("#accU").value.trim().toLowerCase(),c=$("#accC").value;
+    if(!/^[a-z0-9._-]{3,30}$/.test(u))return err("Usuario de 3 a 30 letras o números, sin espacios.");
+    if(c.length<6)return err("La contraseña debe tener al menos 6 caracteres.");if(c!==$("#accC2").value)return err("Las contraseñas no coinciden.");
+    const list={[u]:{nombre:"Diego",clave:c,admin:true,activo:true,temas:"todos"}};
+    for(let i=1;i<=5;i++)list["usuario"+String(i).padStart(2,"0")]={nombre:"Usuario "+String(i).padStart(2,"0"),clave:accPw(),activo:true,temas:[]};
+    try{const r=await accFetch("/accesos",{method:"PUT",body:JSON.stringify(list)});if(!r.ok)throw new Error(await fbErr(r))}catch(er){return err("No se pudo guardar en Firebase ("+er.message+").")}
+    ACCLIST=list;try{localStorage.setItem(ACC_CKEY,JSON.stringify(list));localStorage.setItem(ACC_SKEY,JSON.stringify({u,c}))}catch(er){}d.remove();accSet(u);res()}})}
+async function accGate(){const online=await accLoadList();if(online&&!Object.keys(ACCLIST).length){await accSetupScreen();return}
+  if(!online&&!Object.keys(ACCLIST).length){await accLoginScreen("Sin conexión: conéctate a internet para entrar la primera vez.");return}let s=null;try{s=JSON.parse(localStorage.getItem(ACC_SKEY)||"null")}catch(e){}
+  if(s&&!accCheck(s.u,s.c)){accSet(s.u);return}
+  const msg=s&&ACCLIST[s.u]&&ACCLIST[s.u].activo===false?"Tu cuenta está desactivada. Habla con Diego.":s?"Tu contraseña ha cambiado. Vuelve a entrar.":"";
+  try{localStorage.removeItem(ACC_SKEY)}catch(e){}await accLoginScreen(msg)}
+function accLogout(){confirmBox("¿Cerrar sesión en este dispositivo?","Salir",async()=>{if(accFriend())await accReport();try{localStorage.removeItem(ACC_SKEY)}catch(e){}location.reload()})}
+// Revisa permisos al volver a la app: si Diego quita temas o desactiva la cuenta, se aplica.
+async function accRecheck(){if(!ACC||!navigator.onLine)return;if(!(await accLoadList())||!Object.keys(ACCLIST).length)return;let s=null;try{s=JSON.parse(localStorage.getItem(ACC_SKEY)||"null")}catch(e){}
+  if(!s||accCheck(s.u,s.c)){location.reload();return}const before=JSON.stringify(ACC.temas);accSet(s.u);if(JSON.stringify(ACC.temas)!==before)location.reload()}
+
+/* actividad: cada amigo envía un resumen de lo que hace (por dispositivo y día) */
+function accDev(){let d="";try{d=localStorage.getItem(ACC_DKEY)||""}catch(e){}if(!d){d=uid();try{localStorage.setItem(ACC_DKEY,d)}catch(e){}}return d}
+function accDevTipo(){const ua=navigator.userAgent;const so=/iPhone/.test(ua)?"iPhone":/iPad/.test(ua)?"iPad":/Android/.test(ua)?"Android":/Windows/.test(ua)?"Windows":/Mac OS/.test(ua)?"Mac":/Linux/.test(ua)?"Linux":"Otro";
+  const nav=/SamsungBrowser/.test(ua)?"Samsung":/EdgA?\//.test(ua)?"Edge":/Firefox|FxiOS/.test(ua)?"Firefox":/CriOS|Chrome/.test(ua)?"Chrome":/Safari/.test(ua)?"Safari":"Navegador";
+  const app=window.matchMedia&&matchMedia("(display-mode: standalone)").matches?" · app instalada":"";return so+" · "+nav+app}
+const ENT_KEY="mazosOposicion.entradas";
+function accEntrada(){const ds=dayStr(dayNum(now()));let e={};try{e=JSON.parse(localStorage.getItem(ENT_KEY)||"{}")}catch(er){}
+  if(e.d!==ds)e={d:ds,n:0};e.n++;try{localStorage.setItem(ENT_KEY,JSON.stringify(e))}catch(er){}}
+function accEntradasHoy(){try{const e=JSON.parse(localStorage.getItem(ENT_KEY)||"{}");return e.d===dayStr(dayNum(now()))?e.n:0}catch(er){return 0}}
+let actT=null,lastHidden=0;
+function accActSoon(){if(!accFriend())return;clearTimeout(actT);actT=setTimeout(accReport,30000)}
+async function accReport(){clearTimeout(actT);if(!accFriend()||!navigator.onLine)return;const dev=accDev(),t=dayNum(now()),body={ultimo:now()};
+  body["dispositivos/"+dev]={tipo:accDevTipo(),ultimo:now()};
+  for(let k=0;k<14;k++){const ds=dayStr(t-k),es=LOG[ds]||[];if(!es.length&&k)continue;const temas={};let ok=0,ms=0;
+    es.forEach(x=>{const n=DECKS[x.d]?.num??x.d;const r=temas[n]||(temas[n]=[0,0]);r[0]++;if(x.e>1){r[1]++;ok++}ms+=x.ms||0});
+    body["dias/"+ds+"/"+dev]={n:es.length,ok,min:Math.round(ms/60000),ent:k===0?accEntradasHoy():undefined,temas};}
+  try{await accFetch("/actividad/"+ACC.u,{method:"PATCH",body:JSON.stringify(body)})}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(!ACC)return;
+  if(document.hidden){lastHidden=now();accReport()}
+  else{if(accFriend()&&lastHidden&&now()-lastHidden>30*60000){accEntrada();accActSoon()}accRecheck()}});
+
+/* ---------- pestaña Usuarios (solo Diego) ---------- */
+const UV={act:{},open:null,msg:""};
+function accTemaList(){return deckList().filter(d=>d.num!=null).map(d=>({n:d.num,name:d.name}))}
+function accStats(a){const dias=(a&&a.dias)||{},t=dayNum(now()),per={};
+  for(const [ds,devs] of Object.entries(dias)){const r={n:0,ok:0,min:0,ent:0,temas:{}};
+    for(const v of Object.values(devs||{})){r.n+=v.n||0;r.ok+=v.ok||0;r.min+=v.min||0;r.ent+=v.ent||0;
+      for(const [k,x] of Object.entries(v.temas||{})){const q=r.temas[k]||(r.temas[k]=[0,0]);q[0]+=x[0];q[1]+=x[1]}}per[ds]=r}
+  const sumDays=k=>{let n=0,ok=0,min=0;for(let i=0;i<k;i++){const r=per[dayStr(t-i)];if(r){n+=r.n;ok+=r.ok;min+=r.min}}return{n,ok,min}};
+  let racha=0;for(let i=0;i<400;i++){const day=t-i,r=per[dayStr(day)],wd=new Date(dayTs(day)).getDay();
+    if(r&&r.n){racha++;continue}if(i===0||wd===0||wd===6)continue;break}
+  const temas={};for(let i=0;i<30;i++){const r=per[dayStr(t-i)];if(!r)continue;for(const [k,x] of Object.entries(r.temas)){const q=temas[k]||(temas[k]=[0,0]);q[0]+=x[0];q[1]+=x[1]}}
+  return{per,hoy:per[dayStr(t)]||{n:0,ok:0,min:0,ent:0},s7:sumDays(7),s30:sumDays(30),racha,temas,devs:Object.values((a&&a.dispositivos)||{}).sort((x,y)=>(y.ultimo||0)-(x.ultimo||0)),ultimo:a&&a.ultimo}}
+function agoTxt(ts){if(!ts)return"nunca";const m=Math.round((now()-ts)/60000);if(m<2)return"ahora mismo";if(m<60)return"hace "+m+" min";const h=Math.round(m/60);if(h<24)return"hace "+h+" h";return relDay(dayNum(ts))}
+async function renderUsers(){const box=$("#vUsers");if(!ACC||!ACC.admin){go("decks");return}
+  box.innerHTML='<div class="loading">Cargando usuarios…</div>';
+  const okList=await accLoadList();let act={};try{const r=await accFetch("/actividad");if(r.ok)act=await r.json()||{}}catch(e){}UV.act=act;
+  if(view!=="users")return;
+  const temasAll=accTemaList(),users=Object.entries(ACCLIST||{}).sort((a,b)=>(b[1].admin?1:0)-(a[1].admin?1:0)||a[0].localeCompare(b[0]));
+  let h='<div class="pad"><p class="note">'+(okList?"Los cambios llegan a cada usuario la próxima vez que abra o vuelva a la app.":"Sin conexión con Firebase: no se pueden guardar cambios ahora.")+'</p></div>';
+  h+='<div class="utable"><table><thead><tr><th>Usuario</th><th>Último acceso</th><th>Hoy</th><th>7 días</th><th>Racha</th><th>Disp.</th></tr></thead><tbody>';
+  users.forEach(([u,x])=>{const s=accStats(act[u]);h+='<tr data-uopen="'+esc(u)+'"><td><b>'+esc(x.nombre||u)+'</b><small>'+esc(u)+(x.admin?" · admin":x.activo===false?" · desactivado":"")+'</small></td><td>'+(x.admin?"—":esc(agoTxt(s.ultimo)))+'</td><td>'+(x.admin?"—":s.hoy.n)+'</td><td>'+(x.admin?"—":s.s7.n)+'</td><td>'+(x.admin?"—":s.racha)+'</td><td'+(s.devs.length>2?' class="uwarn"':'')+'>'+(x.admin?"—":s.devs.length)+'</td></tr>'});
+  h+='</tbody></table></div><div class="pad rowbtns"><button class="fbtn" id="uAdd">Añadir usuario</button></div><div id="uDetail"></div>';
+  box.innerHTML=h;
+  box.querySelectorAll("[data-uopen]").forEach(tr=>tr.onclick=()=>{UV.open=tr.dataset.uopen;renderUserDetail(temasAll);$("#uDetail").scrollIntoView({behavior:"smooth"})});
+  $("#uAdd").onclick=()=>accAddUser();
+  if(UV.open&&ACCLIST[UV.open])renderUserDetail(temasAll)}
+function renderUserDetail(temasAll){const u=UV.open,x=ACCLIST[u];if(!x)return;const s=accStats(UV.act[u]),tem=x.admin?"todos":accTemas(x),t=dayNum(now());
+  let h='<div class="pad udet"><div class="sec-t">'+esc(x.nombre||u)+' · '+esc(u)+'</div>';
+  h+='<div class="field"><label for="uNom">Nombre</label><input id="uNom" value="'+esc(x.nombre||"")+'"></div>';
+  h+='<div class="field"><label for="uClave">Contraseña</label><input id="uClave" value="'+esc(x.clave||"")+'" autocomplete="off" spellcheck="false"></div>';
+  if(!x.admin){h+='<label class="switchrow"><span>Cuenta activa<small>Si la desactivas, sale de la app al volver a abrirla.</small></span><input type="checkbox" id="uAct"'+(x.activo===false?"":" checked")+'></label>';
+    h+='<div class="sec-t">Temas a los que tiene acceso</div><div class="rowbtns"><button class="tbtn" id="uAll">Todos</button><button class="tbtn" id="uNone">Ninguno</button></div><div class="utemas">'+
+      temasAll.map(T=>'<label><input type="checkbox" data-tema="'+T.n+'"'+(tem==="todos"||tem.includes(T.n)?" checked":"")+'> <b>'+T.n+'</b> '+esc(T.name)+'</label>').join("")+'</div>'}
+  h+='<div class="rowbtns"><button class="fbtn" id="uSave">Guardar cambios</button>'+(x.admin?"":'<button class="tbtn danger" id="uDel">Eliminar</button>')+'</div><p class="note" id="uMsg"></p>';
+  if(!x.admin){
+    h+='<div class="sec-t">Actividad</div><div class="ukpi"><div><b>'+s.hoy.n+'</b><span>hoy</span></div><div><b>'+s.s7.n+'</b><span>7 días</span></div><div><b>'+s.s30.n+'</b><span>30 días</span></div><div><b>'+pct(s.s30.ok,s.s30.n)+'%</b><span>acierto 30 d</span></div><div><b>'+s.racha+'</b><span>racha</span></div><div><b>'+s.s7.min+'</b><span>min 7 días</span></div></div>';
+    const maxN=Math.max(1,...Array.from({length:7},(_,i)=>(s.per[dayStr(t-i)]||{}).n||0));
+    h+='<div class="udias">'+Array.from({length:7},(_,i)=>{const ds=dayStr(t-i),r=s.per[ds]||{n:0,ok:0,min:0,ent:0};return'<div class="udia"><span class="ud-d">'+cap(relDay(t-i))+'</span><span class="ud-bar"><i style="width:'+Math.round(100*r.n/maxN)+'%"></i></span><span class="ud-n">'+r.n+(r.n?' · '+pct(r.ok,r.n)+'% · '+r.min+' min':'')+(r.ent?' · '+r.ent+(r.ent===1?' entrada':' entradas'):'')+'</span></div>'}).join("")+'</div>';
+    const tr=Object.entries(s.temas).sort((a,b)=>b[1][0]-a[1][0]);
+    h+='<div class="sec-t">Temas (últimos 30 días)</div>'+(tr.length?'<div class="utable"><table><thead><tr><th>Tema</th><th>Respondidas</th><th>Acierto</th></tr></thead><tbody>'+tr.map(([k,v])=>{const T=temasAll.find(z=>String(z.n)===String(k));return'<tr><td>'+esc(T?T.n+". "+T.name:k)+'</td><td>'+v[0]+'</td><td'+(pct(v[1],v[0])<60?' class="uwarn"':'')+'>'+pct(v[1],v[0])+'%</td></tr>'}).join("")+'</tbody></table></div>':'<p class="note">Todavía no ha respondido preguntas.</p>');
+    h+='<div class="sec-t">Dispositivos</div>'+(s.devs.length?s.devs.map(d=>'<p class="note">'+esc(d.tipo||"?")+' · '+esc(agoTxt(d.ultimo))+'</p>').join(""):'<p class="note">Aún no ha entrado.</p>')+(s.devs.length>2?'<p class="note uwarn">Más de 2 dispositivos: puede que esté compartiendo la contraseña.</p>':'')}
+  h+='</div>';$("#uDetail").innerHTML=h;
+  const setAll=v=>document.querySelectorAll("#uDetail [data-tema]").forEach(c=>c.checked=v);
+  if($("#uAll")){$("#uAll").onclick=()=>setAll(true);$("#uNone").onclick=()=>setAll(false)}
+  $("#uSave").onclick=async()=>{const nx=Object.assign({},x,{nombre:$("#uNom").value.trim()||u,clave:$("#uClave").value.trim()});
+    if(!nx.clave){$("#uMsg").textContent="La contraseña no puede quedar vacía.";return}
+    if(!x.admin){nx.activo=$("#uAct").checked;nx.temas=[...document.querySelectorAll("#uDetail [data-tema]:checked")].map(c=>+c.dataset.tema);if(!nx.temas.length)nx.temas=[]}
+    $("#uMsg").textContent="Guardando…";
+    try{const r=await accFetch("/accesos/"+u,{method:"PUT",body:JSON.stringify(nx)});if(!r.ok)throw new Error(await fbErr(r));
+      ACCLIST[u]=nx;try{localStorage.setItem(ACC_CKEY,JSON.stringify(ACCLIST))}catch(e){}
+      if(u===ACC.u){try{localStorage.setItem(ACC_SKEY,JSON.stringify({u,c:nx.clave}))}catch(e){}}
+      toast("Guardado");renderUsers()}catch(e){$("#uMsg").textContent="No se pudo guardar ("+e.message+")."}};
+  if($("#uDel"))$("#uDel").onclick=()=>confirmBox("¿Eliminar a "+(x.nombre||u)+"? Perderá el acceso y se borrará su actividad.","Eliminar",async()=>{
+    try{const r=await accFetch("/accesos/"+u,{method:"DELETE"});if(!r.ok)throw new Error(await fbErr(r));await accFetch("/actividad/"+u,{method:"DELETE"}).catch(()=>{});
+      delete ACCLIST[u];UV.open=null;toast("Usuario eliminado");renderUsers()}catch(e){toast("No se pudo eliminar ("+e.message+")")}})}
+function accAddUser(){let i=1;while(ACCLIST["usuario"+String(i).padStart(2,"0")])i++;const sug="usuario"+String(i).padStart(2,"0");
+  const pw=accPw();
+  const s=sheet('<h4>Nuevo usuario</h4><div class="field"><label for="nU">Usuario</label><input id="nU" value="'+sug+'" autocapitalize="none"></div><div class="field"><label for="nC">Contraseña</label><input id="nC" value="'+pw+'"></div><div class="field"><label for="nN">Nombre (para ti)</label><input id="nN" placeholder="Ej.: Pablo"></div><p class="note" id="nMsg">Después eliges sus temas en su ficha.</p><div class="rowbtns"><button class="tbtn" data-x>Cancelar</button><button class="fbtn" data-ok>Crear</button></div>');
+  s.querySelector("[data-x]").onclick=closeSheet;
+  s.querySelector("[data-ok]").onclick=async()=>{const u=$("#nU").value.trim().toLowerCase(),c=$("#nC").value.trim(),n=$("#nN").value.trim();
+    if(!/^[a-z0-9._-]{3,30}$/.test(u)){$("#nMsg").textContent="Usuario de 3 a 30 letras o números, sin espacios.";return}
+    if(ACCLIST[u]){$("#nMsg").textContent="Ese usuario ya existe.";return}if(c.length<4){$("#nMsg").textContent="Contraseña de al menos 4 caracteres.";return}
+    const nx={nombre:n||u,clave:c,activo:true,temas:[]};
+    try{const r=await accFetch("/accesos/"+u,{method:"PUT",body:JSON.stringify(nx)});if(!r.ok)throw new Error(await fbErr(r));ACCLIST[u]=nx;UV.open=u;closeSheet();toast("Usuario creado");renderUsers()}
+    catch(e){$("#nMsg").textContent="No se pudo crear ("+e.message+")."}}}
+
+// Ajustes: los amigos no ven la sincronización con tu Firebase ni los avisos
+{const rsOrig=renderSettings;renderSettings=function(){rsOrig();if(!accFriend())return;let skip=false;
+  [...$("#settingsBody").children].forEach(el=>{if(el.classList.contains("sec-t"))skip=/sincroniz|avisos/i.test(el.textContent);if(skip)el.hidden=true})}}
+
 /* ---------- arranque ---------- */
 async function start(){
+  await accGate();
+  if(accFriend()){BANK=BANK.filter(q=>temaOk(q.tema));ESTUDIO=ESTUDIO.filter(T=>temaOk(T.tema));accEntrada()}
+  $("#accName").textContent=ACC.nombre+(ACC.admin?" · administrador":"");$("#usersDr").hidden=!ACC.admin;$("#logoutDr").onclick=()=>{closeDrawer();accLogout()};
   const had=await loadLocal();
-  if(!had){try{const seed=JSON.parse(document.getElementById("seed").textContent);applyState(seed);allPaths().forEach(p=>{DOCTS[p]=DOCTS[p]||1})}catch(e){WEAK0.forEach(n=>{dcfg("t"+n).weak=true})}await saveLocalNow()}
+  if(!had&&accFriend()){applyState({});await saveLocalNow()}
+  else if(!had){try{const seed=JSON.parse(document.getElementById("seed").textContent);applyState(seed);allPaths().forEach(p=>{DOCTS[p]=DOCTS[p]||1})}catch(e){WEAK0.forEach(n=>{dcfg("t"+n).weak=true})}await saveLocalNow()}
   buildIndex();go("decks");
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
-  if(SYNC.url){if(await pullRemote())go(view);touch("resumen/main")}}
+  if(SYNC.url&&!accFriend()){if(await pullRemote())go(view);touch("resumen/main")}
+  if(accFriend())setTimeout(accReport,3000)}
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 $("#fsBtn").onclick=()=>{closeDrawer();const d=document;if(d.fullscreenElement)d.exitFullscreen&&d.exitFullscreen();else d.documentElement.requestFullscreen&&d.documentElement.requestFullscreen().catch(()=>toast("Instala la app para verla a pantalla completa"))};
 start();
