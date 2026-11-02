@@ -689,8 +689,8 @@ function buildMix(n){const P=plan(),rv=[],nw={};
   const rot=deckList().map(d=>d.id).filter(id=>nw[id]);rot.forEach(id=>nw[id].sort((a,b)=>CARDS[a].ord-CARDS[b].ord));
   for(let i=0,any=true;any;i++){any=false;for(const id of rot)if(nw[id][i]){ids.push(nw[id][i]);any=true}}
   return ids.slice(0,n)}
-function startMix(n){const ids=buildMix(n);if(!ids.length){toast(PLAN&&PLAN.weekend?"Fin de semana: hoy no toca estudiar":"No quedan preguntas pendientes hoy");return}
-  MIX={n,ids};if(ids.length<n)toast("Solo quedan "+ids.length+" preguntas pendientes hoy; van todas");go("review",{deck:"_mix"})}
+function startMix(n,voz){const ids=buildMix(n);if(!ids.length){toast(PLAN&&PLAN.weekend?"Fin de semana: hoy no toca estudiar":"No quedan preguntas pendientes hoy");return}
+  MIX={n,ids};if(ids.length<n)toast("Solo quedan "+ids.length+" preguntas pendientes hoy; van todas");if(voz)voiceStart("_mix");else go("review",{deck:"_mix"})}
 function mixCounts(){const P=plan();let nw=0,ln=0,rv=0;for(const cid of MIX?MIX.ids:[]){if(!mixPending(cid,P))continue;const c=CARDS[cid],ty=typeOf((ST[c.did]||{})[cid]);
   if(ty==="new")nw++;else if(isLearnT(ty))ln++;else rv++}return{n:nw,l:ln,r:rv,total:MIX?MIX.ids.length:0,newLeft:0}}
 function nextMixed(avoid){const n=now(),t=dayNum(n),learnNow=[],rev=[],news=[],ahead=[],sOf=cid=>(ST[CARDS[cid].did]||{})[cid];
@@ -835,9 +835,9 @@ function cardForm(did,cid){const c=cid?CARDS[cid]:null,kind=c?c.kind:"test";
       $("#cfQ").value="";[0,1,2].forEach(i=>{const e=$("#cfO"+i);if(e)e.value=""});if($("#cfE"))$("#cfE").value="";if($("#cfR"))$("#cfR").value="";$("#cfQ").focus();toast("Pregunta añadida");if(view==="decks")renderDecks()}}}
 
 /* ---------- importación ---------- */
-$("#fab").onclick=()=>{const s=sheet('<h4>Estudiar mezclado</h4><p class="note">Coge preguntas pendientes de hoy de todos los temas y las pone juntas. Cuentan igual que hacerlas por separado.</p><div class="rowbtns" style="justify-content:flex-start;margin:10px 0 4px">'+[25,50,100].map(n=>'<button class="chipbtn" data-mix="'+n+'">'+n+' preguntas</button>').join("")+'</div><h4>Añadir</h4><button class="sitem" data-k="imp">'+I.file+'Importar Excel / CSV</button><button class="sitem" data-k="deck">'+I.deck+'Crear mazo</button><button class="sitem" data-k="card">'+I.add+'Añadir pregunta</button>'+
+$("#fab").onclick=()=>{const s=sheet('<h4>Estudiar mezclado</h4><p class="note">Coge preguntas pendientes de hoy de todos los temas y las pone juntas. Cuentan igual que hacerlas por separado.</p><div class="rowbtns" style="justify-content:flex-start;margin:10px 0 4px">'+[25,50,100].map(n=>'<button class="chipbtn" data-mix="'+n+'">'+n+' preguntas</button>').join("")+'</div><div class="rowbtns" style="justify-content:flex-start;margin:4px 0 4px">'+[25,50,100].map(n=>'<button class="chipbtn" data-mixv="'+n+'">🎙 '+n+' por voz</button>').join("")+'</div><h4>Añadir</h4><button class="sitem" data-k="imp">'+I.file+'Importar Excel / CSV</button><button class="sitem" data-k="deck">'+I.deck+'Crear mazo</button><button class="sitem" data-k="card">'+I.add+'Añadir pregunta</button>'+
   '<p class="note" style="padding:8px 4px 4px">Tipo test: A pregunta, B-C-D opciones, E letra correcta (A/B/C), F explicación (opcional), G tema (opcional).<br>Pregunta y respuesta: A pregunta, B respuesta, C tema (opcional).</p>');
-  s.querySelectorAll("[data-mix]").forEach(b=>b.onclick=()=>{closeSheet();startMix(+b.dataset.mix)});
+  s.querySelectorAll("[data-mix]").forEach(b=>b.onclick=()=>{closeSheet();startMix(+b.dataset.mix)});s.querySelectorAll("[data-mixv]").forEach(b=>b.onclick=()=>{closeSheet();startMix(+b.dataset.mixv,true)});
   s.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{closeSheet();const k=b.dataset.k;
     if(k==="imp"){$("#fileIn").value="";$("#fileIn").click()}
     if(k==="deck")newDeckForm();
@@ -929,7 +929,7 @@ function cardHtml(it){const c=CARDS[it.cid];if(!c)return"";const s=stOf(it.cid),
     (it.ro?'<button class="next-btn" id="fwdQ">'+(hpos<sess.hist.length-1?"Adelante ›":"Volver a la actual ›")+'</button>':ans?'<button class="next-btn" id="nextBtn">Siguiente ›</button>':'<span></span>')+'</div></div>';
   return h}
 function renderCard(){const k=renderBar(),v=$("#vReview"),left=k.n+k.l+k.r,prog=sess.done+left?Math.round(100*sess.done/(sess.done+left)):100;
-  const head='<div class="rv pad">'+tiles()+'<div class="rv-track"><div class="rv-fill" style="width:'+prog+'%"></div></div>';
+  const head='<div class="rv pad">'+tiles()+(curDeck==="_mix"?'<div style="display:flex;justify-content:flex-end;margin:-4px 0 6px"><button class="chipbtn" id="mixVoice">🎙 Seguir por voz</button></div>':'')+'<div class="rv-track"><div class="rv-fill" style="width:'+prog+'%"></div></div>';
   if(hpos>=0){const h=sess.hist[hpos];v.innerHTML=head+cardHtml(Object.assign({ro:true,phase:"a",num:hpos+1,total:sess.done+left},h))+'</div>';wireCard(true);return}
   if(!cur){const n2=nextStudy(curDeck),lrn=(DCARDS[curDeck]||[]).map(stOf).filter(s=>s&&isLearnT(s.ty)).sort((a,b)=>a.due-b.due)[0];
     const later=lrn&&dayNum(lrn.due)===dayNum(now())?"Quedan preguntas en aprendizaje; vuelve en unos "+Math.max(1,Math.round((lrn.due-now()-AHEAD)/60e3))+" min.":"Próximo estudio: "+(n2===null?"—":relDay(n2))+".";
@@ -1065,7 +1065,7 @@ async function voiceStart(did){if(!voiceOK()){toast("Este navegador no permite e
   V={gen:0,on:true,did:did||null,status:"idle",heard:"",cur:null,order:[0,1,2],last:null,done:0,ok:0,phase:"tema",lock:null,msg:""};
   try{V.lock=await navigator.wakeLock.request("screen")}catch(e){}
   go("voice");speechSynthesis.getVoices();await new Promise(r=>setTimeout(r,250));
-  if(did&&DECKS[did])voiceDeck(did);else voiceAskTema("¿Qué tema quieres estudiar?")}
+  if(did==="_mix"&&MIX)voiceDeck("_mix");else if(did&&DECKS[did])voiceDeck(did);else voiceAskTema("¿Qué tema quieres estudiar?")}
 function voiceStop(){if(!V)return;stopBarge();V.on=false;try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();try{V.lock&&V.lock.release()}catch(e){}V=null}
 async function hear(prompt,tries){for(let k=0;k<(tries||3);k++){if(!V||!V.on)return null;const alts=await listen();if(!V||!V.on)return null;
     if(V.denied){V.msg="Chrome no tiene permiso para usar el micrófono. Actívalo en los permisos del sitio y vuelve a intentarlo.";V.on=false;renderVoice();return null}
@@ -1080,7 +1080,8 @@ async function voiceAskTema(q){if(V.test){await say("En el test no se cambia de 
   if(!d){const na=normTxt(all);d=deckList().find(x=>na.includes(normTxt(x.name)))||deckList().find(x=>toks(x.name).filter(w=>w.length>4).some(w=>na.includes(w)))}
   if(!d)return voiceAskTema(n!=null?"No tengo el tema "+n+". Dime otro número.":"No te he entendido. ¿Qué tema quieres?");
   voiceDeck(d.id)}
-async function voiceDeck(did){V.did=did;const d=DECKS[did],k=counts(did),sum=k.n+k.l+k.r;
+async function voiceDeck(did){V.did=did;if(did==="_mix"){const k=counts(did),sum=k.n+k.l+k.r;if(!sum)return voiceAskTema("No quedan preguntas de la mezcla. ¿Qué tema quieres?");V.done=0;V.ok=0;V.last=null;V.cur=null;V.phase="intro";V.introTxt="Mezcla · "+sum+" preguntas";renderVoice();const g=V.gen;await say("Mezcla de todos los temas. Tienes "+sum+" preguntas.");if(V&&V.on&&V.gen===g)voiceNext();return}
+  const d=DECKS[did],k=counts(did),sum=k.n+k.l+k.r;
   if(!sum){const nx=nextStudy(did);return voiceAskTema("El tema "+(d.num??d.name)+" no tiene preguntas pendientes"+(nx!=null?"; te toca "+relDay(nx):"")+". ¿Qué otro tema quieres?")}
   V.done=0;V.ok=0;V.last=null;V.cur=null;V.phase="intro";V.introTxt=(d.num!=null?"Tema "+d.num+" · ":"")+d.name+" · "+sum+" preguntas";renderVoice();const g=V.gen;await say("Tema "+(d.num!=null?d.num+", ":"")+d.name+". Tienes "+sum+" preguntas.");if(V&&V.on&&V.gen===g)voiceNext()}
 function voiceStartTest(){if(!TR||TR.result)return;if(!voiceOK()){toast("Este navegador no permite estudiar por voz; usa Chrome");return}
@@ -1102,6 +1103,7 @@ async function voiceTestGrade(pos){stopBarge();V.reading=false;const gg=V.gen,li
   if(!live())return;await new Promise(r=>setTimeout(r,400));if(live())voiceNext()}
 async function voiceTestSkip(){const cid=V.cur;if(cid)TR.pg.ans[cid]="b";V.last=cid;testSaveProg();await say("En blanco.");voiceNext()}
 async function voiceNext(){if(!V||!V.on)return;if(V.test)return voiceTestNext();const cid=nextCard(V.did,V.last);
+  if(!cid&&V.did==="_mix"){MIX=null;V.did=null;return voiceAskTema("Has terminado la mezcla. "+V.ok+" aciertos de "+V.done+". ¿Quieres un tema? Di el número o di salir.")}
   if(!cid){const d=DECKS[V.did];return voiceAskTema("Has terminado el tema "+(d.num??d.name)+". "+V.ok+" aciertos de "+V.done+". ¿Quieres otro tema? Di el número o di salir.")}
   const c=CARDS[cid];if(c.kind!=="test"){V.last=cid;return voiceBasic(cid)}
   V.cur=cid;V.phase="q";V.order=shuffle3();V.chosen=null;V.heard="";V.t0=null;V.tq=now();renderVoice();voiceAsk()}
@@ -1130,8 +1132,8 @@ async function voiceBasic(cid){V.cur=cid;V.phase="q";renderVoice();const c=CARDS
 function voiceSkipFeedback(){if(!V||(V.phase!=="a"&&V.phase!=="intro"))return;V.gen++;stopBarge();try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();V.on=true;V.msg="";V.reading=false;voiceNext()}
 function voicePause(){if(!V)return;stopBarge();V.on=false;V.gen++;try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();V.status="paused";renderVoice()}
 function voiceResume(){if(!V)return;V.on=true;V.gen++;V.msg="";if(V.phase==="q"&&V.cur){renderVoice();voiceAsk()}else if((V.did||V.test)&&V.phase!=="tema")voiceNext();else voiceAskTema("¿Qué tema quieres estudiar?")}
-function voiceExit(){if(V&&V.test){voiceStop();if(TR&&!TR.result){TR.sessStart=now();TR.qStart=now();go("test")}else go("decks");return}const d=V&&V.did;voiceStop();go(d?"overview":"decks",d?{deck:d}:undefined)}
-function renderVoice(){const box=$("#vVoice");if(!box||view!=="voice"||!V)return;const c=V.cur?CARDS[V.cur]:null,d=V.did?DECKS[V.did]:(c?DECKS[c.did]:null),tx=V.test&&TR&&TR.pg&&TR.pg.mode==="examen";
+function voiceExit(){if(V&&V.test){voiceStop();if(TR&&!TR.result){TR.sessStart=now();TR.qStart=now();go("test")}else go("decks");return}const d=V&&V.did;voiceStop();if(d==="_mix"){if(MIX&&nextCard("_mix",null))go("review",{deck:"_mix"});else{MIX=null;go("decks")}return}go(d?"overview":"decks",d?{deck:d}:undefined)}
+function renderVoice(){const box=$("#vVoice");if(!box||view!=="voice"||!V)return;const c=V.cur?CARDS[V.cur]:null,d=(V.did&&DECKS[V.did])||(c?DECKS[c.did]:null),tx=V.test&&TR&&TR.pg&&TR.pg.mode==="examen";
   const ST={speak:"Hablando…",listen:"Escuchando…",think:"Entendido",idle:"",paused:"En pausa"};
   let h='<div class="rv pad"><div class="rv-tiles"><div class="rv-tile"><span class="n">'+V.done+'</span><span class="l">respondidas</span></div>'+(tx?'<div class="rv-tile"><span class="n">'+TR.T.ids.filter(id=>TR.pg.ans[id]==null&&CARDS[id]).length+'</span><span class="l">quedan</span></div>':'<div class="rv-tile"><span class="n ok">'+V.ok+'</span><span class="l">aciertos</span></div><div class="rv-tile"><span class="n bad">'+(V.done-V.ok)+'</span><span class="l">fallos</span></div>')+'</div>';
   h+='<div class="vstat '+V.status+'"><span class="vdot"></span><span>'+(V.msg?esc(V.msg):ST[V.status]||"")+'</span>'+(V.heard?'<span class="vheard">«'+esc(V.heard)+'»</span>':'')+'</div>';
@@ -1147,6 +1149,7 @@ function renderVoice(){const box=$("#vVoice");if(!box||view!=="voice"||!V)return
   box.innerHTML=h;
   $("#vExit").onclick=voiceExit;if($("#vPause"))$("#vPause").onclick=voicePause;if($("#vGo"))$("#vGo").onclick=voiceResume;if($("#vNext"))$("#vNext").onclick=voiceSkipFeedback;
   box.querySelectorAll("[data-vo]").forEach(b=>b.onclick=()=>{if(V.phase==="a")return voiceSkipFeedback();if(V.phase==="q"&&V.on){V.gen++;try{V.rec&&V.rec.abort()}catch(e){}speechSynthesis.cancel();voiceGrade(+b.dataset.vo)}})}
+document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#mixVoice")&&view==="review"&&curDeck==="_mix"&&MIX)voiceStart("_mix")});
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&V&&V.on)voicePause()});
 
 
