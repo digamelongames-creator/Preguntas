@@ -1,0 +1,44 @@
+name: APK Duelo de Preguntas
+on:
+  push:
+    branches: [main]
+    paths: ['duelo/**', '.github/workflows/duelo-apk.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: duelo-apk
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: duelo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npx cap sync android
+      - run: chmod +x android/gradlew && cd android && ./gradlew assembleDebug --no-daemon
+      - name: Publicar la APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk DueloDePreguntas.apk
+          gh release delete duelo-apk --yes --cleanup-tag || true
+          gh release create duelo-apk DueloDePreguntas.apk \
+            --title "Duelo de Preguntas (versión ${{ github.run_number }})" \
+            --notes "Descarga DueloDePreguntas.apk desde el móvil e instálala. Si ya la tienes, se instala encima conservando la sesión."
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DueloDePreguntas
+          path: duelo/DueloDePreguntas.apk

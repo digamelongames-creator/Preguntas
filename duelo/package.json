@@ -1,0 +1,21 @@
+{
+  "name": "duelo-preguntas",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.2",
+    "firebase": "^13.4.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
+    "@fontsource/bebas-neue": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "esbuild": "^0.28.2"
+  },
+  "type": "module"
+}
