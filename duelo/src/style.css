@@ -137,3 +137,13 @@ input:focus{border-color:var(--gold)}
 .ri .a{color:#8ff0c0;font-weight:600;margin-top:4px}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#26324f;color:var(--txt);padding:11px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:20;max-width:90vw;text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%)}
+label small{font-weight:400;font-size:12px;color:var(--mut);line-height:1.35}
+input::placeholder{color:#55617d}
+.duo{display:flex;gap:10px}
+.duo>*{flex:1}
+.big.alt{background:var(--panel2);color:var(--txt);border:1px solid var(--gold)}
+.ghost.reg{border-color:var(--gold);color:var(--gold);font-weight:700}
+.qbtn{border:1px solid var(--line)!important;border-radius:10px;padding:6px 10px!important;color:var(--gold)!important;font-weight:700}
+.aviso{display:block;color:var(--txt);text-decoration:none;border-color:var(--gold);font-size:14px;line-height:1.4;margin-bottom:10px}
+.aviso b{color:var(--gold)}
+.ver{text-align:center;color:#3f4a63;font-size:11px;padding:24px 0 10px}

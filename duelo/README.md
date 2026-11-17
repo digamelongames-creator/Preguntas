@@ -4,7 +4,9 @@ Juego de cartas tipo Gwent con preguntas de la oposición. Tiene duelos online p
 
 - `src/`: el código de la app (`engine.js` tiene las reglas y `preguntas.js` las cartas).
 - `android/`: el proyecto Android (Capacitor).
-- Cada cambio en esta carpeta hace que GitHub compile la APK y la publique en **Releases → duelo-apk**.
+- Cada cambio en esta carpeta hace que GitHub compile la APK (**Releases → duelo-apk**) y el paquete de actualización (**Releases → duelo-web**).
+- La app busca actualizaciones al abrirse y al volver a primer plano, y se actualiza sola. Si cambias algo de Android (plugins, icono, permisos), sube `NATIVO` en `src/app.js`: las apps antiguas avisarán de descargar la APK nueva.
+- Al crear cuenta se envía un correo de confirmación; sin confirmar no se entra en la sala.
 
 ## Firebase (proyecto curva-olvido-f89d1)
 1. **Authentication → Método de acceso → Correo electrónico/contraseña → Activar.**

@@ -35,9 +35,21 @@ jobs:
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk DueloDePreguntas.apk
           gh release delete duelo-apk --yes --cleanup-tag || true
-          gh release create duelo-apk DueloDePreguntas.apk \
+          gh release create duelo-apk DueloDePreguntas.apk --latest \
             --title "Duelo de Preguntas (versión ${{ github.run_number }})" \
             --notes "Descarga DueloDePreguntas.apk desde el móvil e instálala. Si ya la tienes, se instala encima conservando la sesión."
+      - name: Publicar la actualización automática
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          (cd www && zip -qr ../bundle.zip .)
+          NATIVO=$(grep -oP 'NATIVO = \K[0-9]+' src/app.js)
+          printf '{"version":%s,"nativo":%s,"url":"https://github.com/${{ github.repository }}/releases/download/duelo-web/bundle.zip"}\n' "${{ github.run_number }}" "$NATIVO" > version.json
+          cat version.json
+          gh release delete duelo-web --yes --cleanup-tag || true
+          gh release create duelo-web bundle.zip version.json --latest=false \
+            --title "Duelo de Preguntas: actualización ${{ github.run_number }}" \
+            --notes "Contenido que la app descarga sola al abrirse. No hace falta descargar nada de aquí."
       - uses: actions/upload-artifact@v4
         with:
           name: DueloDePreguntas

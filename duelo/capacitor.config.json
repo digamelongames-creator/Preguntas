@@ -1,5 +1,12 @@
 {
   "appId": "com.digamelongames.duelo",
   "appName": "Duelo de Preguntas",
-  "webDir": "www"
+  "webDir": "www",
+  "plugins": {
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "statsUrl": "",
+      "appReadyTimeout": 15000
+    }
+  }
 }

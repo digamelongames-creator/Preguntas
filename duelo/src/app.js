@@ -1,14 +1,24 @@
 import { initializeApp } from 'firebase/app';
 import {
   initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, onAuthStateChanged,
-  signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile
+  signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile,
+  sendEmailVerification, reload
 } from 'firebase/auth';
 import { getDatabase, ref, onValue, set, update, push, runTransaction, serverTimestamp, increment, remove } from 'firebase/database';
 import { App } from '@capacitor/app';
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { FIREBASE } from './firebase-config.js';
 import * as E from './engine.js';
 
 const $app = document.getElementById('app');
+// VERSION: número de compilación de GitHub. NATIVO: súbelo solo si cambia algo de Android (plugins, icono, permisos):
+// así las apps con una APK antigua avisan de descargar la nueva en vez de recibir un contenido incompatible.
+const VERSION = __VERSION__, NATIVO = 1;
+const URL_VERSION = 'https://github.com/digamelongames-creator/Preguntas/releases/download/duelo-web/version.json';
+const URL_APK = 'https://github.com/digamelongames-creator/Preguntas/releases/download/duelo-apk/DueloDePreguntas.apk';
+const NOMBRE_OK = /^[\p{L}\p{N} _.-]{3,18}$/u;
+let hayApkNueva = false;
 const DN = { 1: 'Fácil', 2: 'Media', 3: 'Difícil' };
 const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const gems = n => '<i>' + '●'.repeat(n) + '</i>' + '○'.repeat(Math.max(0, 2 - n));
@@ -20,6 +30,7 @@ let auth = null, db = null, offset = 0;
 if (configurado) {
   const fb = initializeApp(FIREBASE);
   auth = initializeAuth(fb, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] });
+  auth.languageCode = 'es';
   db = getDatabase(fb);
   onValue(ref(db, '.info/serverTimeOffset'), s => { offset = s.val() || 0; });
 }
@@ -66,15 +77,17 @@ function pantallaLogin(modo = 'entrar', msg = '', okm = false) {
     <h1><small>OPOSICIÓN</small>Duelo de Preguntas</h1>
     ${configurado ? `<form class="panel" id="flogin" data-modo="${modo}">
       <div class="tabs"><button type="button" data-a="tab" data-m="entrar" class="${modo === 'entrar' ? 'on' : ''}">Entrar</button><button type="button" data-a="tab" data-m="registro" class="${modo === 'registro' ? 'on' : ''}">Crear cuenta</button></div>
-      ${modo === 'registro' ? '<label>Nombre de jugador<input id="fnombre" maxlength="18" required autocomplete="nickname" value="${esc(nombreRegistro)}"></label>' : ''}
-      <label>Email<input id="femail" type="email" required autocomplete="email" value="${esc(ultimoEmail)}"></label>
-      <label>Contraseña<input id="fpass" type="password" minlength="6" required autocomplete="${modo === 'registro' ? 'new-password' : 'current-password'}"></label>
+      ${modo === 'registro' ? `<label>Nombre de jugador<input id="fnombre" maxlength="18" required autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Ej.: Diego_Poli" value="${esc(nombreRegistro)}">
+        <small>De 3 a 18 caracteres: letras, números, espacios, punto, guion o guion bajo.</small></label>` : ''}
+      <label>Email<input id="femail" type="email" required autocomplete="email" placeholder="Ej.: tunombre@gmail.com" value="${esc(ultimoEmail)}"></label>
+      <label>Contraseña<input id="fpass" type="password" minlength="6" required autocomplete="${modo === 'registro' ? 'new-password' : 'current-password'}" placeholder="${modo === 'registro' ? 'Mínimo 6 caracteres. Ej.: Opos2026' : 'Tu contraseña'}">
+        ${modo === 'registro' ? '<small>Te enviaremos un correo para confirmar la cuenta.</small>' : ''}</label>
       ${msg ? `<div class="msg ${okm ? 'okm' : ''}">${esc(msg)}</div>` : ''}
       <button class="big" type="submit">${modo === 'registro' ? 'Crear cuenta' : 'Entrar'}</button>
       ${modo === 'entrar' ? '<button type="button" class="link" data-a="olvido">¿Has olvidado la contraseña?</button>' : ''}
     </form>` : `<div class="panel msg">Falta conectar Firebase. De momento solo puedes practicar contra la IA.</div>`}
-    <button class="ghost" data-a="practica">🤖 Practicar sin cuenta</button>
-    <button class="link" data-a="reglas">Cómo se juega</button>
+    <div class="duo"><button class="ghost" data-a="practica">🤖 Practicar sin cuenta</button>
+    <button class="ghost reg" data-a="reglas">📖 Cómo se juega</button></div>
   </div>`;
 }
 
@@ -84,10 +97,12 @@ async function enviarLogin(form) {
   const btn = form.querySelector('.big'); btn.disabled = true;
   try {
     if (modo === 'registro') {
-      nombreRegistro = form.querySelector('#fnombre').value.trim().slice(0, 18);
-      if (!nombreRegistro) { btn.disabled = false; return; }
+      nombreRegistro = form.querySelector('#fnombre').value.trim().replace(/\s+/g, ' ');
+      if (!NOMBRE_OK.test(nombreRegistro)) return pantallaLogin('registro', 'El nombre de jugador debe tener de 3 a 18 caracteres: letras, números, espacios, punto, guion o guion bajo.');
       const c = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(c.user, { displayName: nombreRegistro });
+      await sendEmailVerification(c.user).catch(() => {});
+      pantallaVerificar();
     } else {
       await signInWithEmailAndPassword(auth, email, pass);
     }
@@ -103,10 +118,74 @@ async function olvido() {
 
 if (configurado) {
   onAuthStateChanged(auth, u => {
-    if (u) { yo = { uid: u.uid, nombre: u.displayName || u.email.split('@')[0] }; entrarLobby(); }
+    if (u && !u.emailVerified) { yo = null; limpiarLobby(); if (pantalla !== 'juego') pantallaVerificar(); }
+    else if (u) { yo = { uid: u.uid, nombre: u.displayName || u.email.split('@')[0] }; entrarLobby(); }
     else { yo = null; limpiarLobby(); if (pantalla !== 'juego') pantallaLogin(); }
   });
 } else pantallaLogin();
+
+// ---------- Confirmar email ----------
+function pantallaVerificar(msg = '', okm = false) {
+  pantalla = 'verificar'; cerrarOv();
+  const email = auth.currentUser?.email || '';
+  $app.innerHTML = `<div class="intro">
+    <h1><small>UN ÚLTIMO PASO</small>Confirma tu correo</h1>
+    <div class="panel">
+      <div class="rules"><div>Te hemos enviado un correo a <b>${esc(email)}</b>. Abre el enlace que trae para activar tu cuenta y vuelve aquí.</div>
+      <div>Si no lo ves, mira en <b>Spam</b> o <b>Promociones</b>.</div></div>
+      ${msg ? `<div class="msg ${okm ? 'okm' : ''}">${esc(msg)}</div>` : ''}
+      <button class="big" data-a="verificado">Ya lo he confirmado</button>
+      <button class="ghost" data-a="reenviar">Reenviar el correo</button>
+      <button class="link" data-a="salir">Usar otra cuenta</button>
+    </div>
+    <div class="duo"><button class="ghost" data-a="practica">🤖 Practicar mientras</button>
+    <button class="ghost reg" data-a="reglas">📖 Cómo se juega</button></div>
+  </div>`;
+}
+async function comprobarVerificado() {
+  const u = auth.currentUser; if (!u) return pantallaLogin();
+  try { await reload(u); } catch (e) { return pantallaVerificar(errorTexto(e)); }
+  if (auth.currentUser.emailVerified) {
+    await auth.currentUser.getIdToken(true).catch(() => {});
+    yo = { uid: u.uid, nombre: u.displayName || u.email.split('@')[0] }; entrarLobby();
+  } else pantallaVerificar('Todavía no consta como confirmado. Pulsa el enlace del correo y vuelve a intentarlo.');
+}
+async function reenviarCorreo() {
+  if (Date.now() - (reenviarCorreo.t || 0) < 60000) return pantallaVerificar('Espera un minuto antes de pedir otro correo.');
+  reenviarCorreo.t = Date.now();
+  try { await sendEmailVerification(auth.currentUser); pantallaVerificar('Correo reenviado.', true); }
+  catch (e) { pantallaVerificar(errorTexto(e)); }
+}
+
+// ---------- Actualizaciones ----------
+async function buscarActualizacion() {
+  if (!Capacitor.isNativePlatform()) return;
+  if (Date.now() - (buscarActualizacion.t || 0) < 5 * 60000) return;
+  buscarActualizacion.t = Date.now();
+  try {
+    const cur = await CapacitorUpdater.current();
+    try { if (cur.bundle.id === 'builtin') localStorage.setItem('nativo', NATIVO); } catch { }
+    let nativo = NATIVO; try { nativo = +localStorage.getItem('nativo') || NATIVO; } catch { }
+    const r = await CapacitorHttp.get({ url: URL_VERSION + '?t=' + Date.now() });
+    if (r.status !== 200) return;
+    const info = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+    if (!info || !(+info.version > VERSION)) return;
+    if (+info.nativo > nativo) { hayApkNueva = true; pintarLobby(); return; }
+    const b = await CapacitorUpdater.download({ url: info.url, version: String(info.version) });
+    if (pantalla === 'lobby' || pantalla === 'verificar') {
+      toast('Instalando la nueva versión…');
+      setTimeout(() => CapacitorUpdater.set({ id: b.id }), 900);
+    } else {
+      await CapacitorUpdater.next({ id: b.id });
+      toast('Nueva versión descargada: se aplicará al volver a abrir la app');
+    }
+  } catch (e) { console.log('actualización', e); }
+}
+if (Capacitor.isNativePlatform()) {
+  CapacitorUpdater.notifyAppReady().catch(() => {});
+  setTimeout(buscarActualizacion, 2500);
+  App.addListener('resume', () => buscarActualizacion()).catch(() => {});
+}
 
 // ---------- Sala ----------
 function limpiarLobby() {
@@ -176,7 +255,9 @@ function pintarLobby() {
   <header class="top"><div class="av">🧑‍✈️</div><div class="yo"><span>Jugador</span><b>${esc(me.nombre || yo.nombre)}</b></div>
     <div class="rec">${me.v || 0}V · ${me.d || 0}D</div><button class="icon" data-a="menu">⋯</button></header>
   ${L.error ? `<div class="panel msg">No se puede leer la base de datos (${esc(L.error)}). Revisa las reglas de Firebase.</div>` : ''}
-  <button class="big" data-a="practica">🤖 Practicar contra la IA</button>
+  ${hayApkNueva ? `<a class="panel aviso" href="${URL_APK}">📲 Hay una versión nueva de la app. <b>Pulsa aquí para descargarla</b> e instálala encima.</a>` : ''}
+  <div class="duo"><button class="big" data-a="practica">🤖 Practicar contra la IA</button>
+  <button class="big alt" data-a="reglas">📖 Cómo se juega</button></div>
   ${sec('Te han retado', recibidos.map(p => `<div class="row hot"><div class="rn"><b>${rivalNom(p)}</b><span>te reta a un duelo</span></div>
       <button class="sm ok" data-a="aceptar" data-id="${p.id}">Aceptar</button><button class="sm no" data-a="rechazar" data-id="${p.id}">✕</button></div>`))}
   ${sec('En juego', activas.map(p => `<button class="row ${miTurno(p) ? 'hot' : ''}" data-a="abrir" data-id="${p.id}"><div class="rn"><b>vs ${rivalNom(p)}</b>
@@ -191,7 +272,7 @@ function pintarLobby() {
   ${sec('Terminadas', terminadas.map(p => `<div class="row"><button class="rn" data-a="${p.estado === 'rechazada' ? '' : 'abrir'}" data-id="${p.id}"><b>vs ${rivalNom(p)}</b>
       <span>${p.estado === 'rechazada' ? 'No aceptó el reto' : `Rondas ${p.s.rondas[p.w]}–${p.s.rondas[E.otro(p.w)]}${p.s.abandono ? ' · abandono' : ''}`}</span></button>
       ${resultado(p)}<button class="sm no" data-a="borrar" data-id="${p.id}">✕</button></div>`))}
-  <div style="height:20px"></div>`;
+  <div class="ver">Versión ${VERSION}</div>`;
 }
 
 async function retar(uid) {
@@ -323,7 +404,7 @@ function pintarJuego() {
   }).join('') : '<div class="empty">No te quedan cartas</div>';
   const scroll = $app.querySelector('.hand')?.scrollLeft || 0;
   $app.innerHTML = `
-  <div class="gtop"><button data-a="volver">← Salir</button><button data-a="abandonar">Abandonar</button></div>
+  <div class="gtop"><button data-a="volver">← Salir</button><button class="qbtn" data-a="reglas">? Cómo se juega</button><button data-a="abandonar">Abandonar</button></div>
   <div class="bar ${(s.fase === 'elegir' && s.turno === r && !s.pasa[r]) ? 'turn' : ''}">
     <div class="av">${V.modo === 'ia' ? '🤖' : '🕵️'}</div><div class="who"><b>${nom(r)}</b><div class="gems">${gems(s.rondas[r])}</div></div>
     <div class="stats"><span>⚡${s.energia[r]}</span>${s.pasa[r] ? '<span class="pass">PASA</span>' : ''}</div>
@@ -343,10 +424,11 @@ function pintarJuego() {
   </div>`;
   const h = $app.querySelector('.hand'); if (h) h.scrollLeft = scroll;
 
-  if (V.cola.length) mostrarEvento(V.cola[0]);
+  if (V.reglas) reglas();
+  else if (V.confirmar) confirmarAbandono();
+  else if (V.cola.length) mostrarEvento(V.cola[0]);
   else if (s.fase === 'responder') mostrarPregunta();
-  else if (!V.confirmar) cerrarOv();
-  if (V.confirmar) confirmarAbandono();
+  else cerrarOv();
   tick();
 }
 
@@ -463,9 +545,11 @@ document.addEventListener('click', e => {
   switch (a) {
     case 'tab': return pantallaLogin(t.dataset.m);
     case 'olvido': return olvido();
+    case 'verificado': return comprobarVerificado();
+    case 'reenviar': return reenviarCorreo();
     case 'practica': return abrirPractica();
-    case 'reglas': return reglas();
-    case 'cerrar': return pantalla === 'juego' ? (ovHtml = null, pintarJuego()) : cerrarOv();
+    case 'reglas': if (pantalla === 'juego' && V) V.reglas = true; return reglas();
+    case 'cerrar': if (pantalla === 'juego') { V.reglas = false; ovHtml = null; return pintarJuego(); } return cerrarOv();
     case 'menu': return menuLobby();
     case 'salir': cerrarOv(); return signOut(auth);
     case 'retar': return retar(t.dataset.uid);
@@ -505,8 +589,8 @@ document.addEventListener('click', e => {
 });
 
 App.addListener('backButton', () => {
-  if (document.getElementById('ov') && !(pantalla === 'juego' && V?.s && (V.cola.length || V.s.fase === 'responder'))) {
-    if (V?.confirmar) { V.confirmar = false; ovHtml = null; return pintarJuego(); }
+  if (document.getElementById('ov') && (V?.reglas || V?.confirmar || !(pantalla === 'juego' && V?.s && (V.cola.length || V.s.fase === 'responder')))) {
+    if (V?.confirmar || V?.reglas) { V.confirmar = false; V.reglas = false; ovHtml = null; return pintarJuego(); }
     return cerrarOv();
   }
   if (pantalla === 'juego') return salirPartida();

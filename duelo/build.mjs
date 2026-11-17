@@ -1,7 +1,8 @@
 import { build } from 'esbuild';
 import { cpSync, mkdirSync } from 'fs';
 mkdirSync('www', { recursive: true });
-await build({ entryPoints: ['src/app.js'], bundle: true, minify: true, format: 'iife', target: ['chrome89'], outfile: 'www/app.js' });
+await build({ entryPoints: ['src/app.js'], bundle: true, minify: true, format: 'iife', target: ['chrome89'], outfile: 'www/app.js',
+  define: { __VERSION__: JSON.stringify(+(process.env.GITHUB_RUN_NUMBER || 0)) } });
 for (const f of ['index.html', 'style.css']) cpSync('src/' + f, 'www/' + f);
 // Fuentes dentro de la app para que se vean igual sin conexión
 mkdirSync('www/fonts', { recursive: true });
