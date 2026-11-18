@@ -1,0 +1,30 @@
+name: Informe de estudio
+on:
+  schedule:
+    - cron: "23 5-22/3 * * *"   # cada 3 horas, de 6/7 h a 23/24 h en Madrid
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [".github/informe/**", ".github/workflows/informe.yml"]
+permissions:
+  contents: write
+concurrency: informe
+jobs:
+  informe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Calcular informe
+        env:
+          TZ: Europe/Madrid
+          FIREBASE_SECRET: ${{ secrets.FIREBASE_SECRET }}
+        run: node .github/informe/informe.js salida index.html
+      - name: Guardar en la rama informe
+        run: |
+          cd salida && git init -q && git checkout -q -b informe
+          git -c user.name=github-actions -c user.email=actions@github.com add .
+          git -c user.name=github-actions -c user.email=actions@github.com commit -q -m "Informe de estudio"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" informe
