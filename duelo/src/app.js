@@ -77,7 +77,7 @@ function pantallaLogin(modo = 'entrar', msg = '', okm = false) {
     <h1><small>OPOSICIÓN</small>Duelo de Preguntas</h1>
     ${configurado ? `<form class="panel" id="flogin" data-modo="${modo}">
       <div class="tabs"><button type="button" data-a="tab" data-m="entrar" class="${modo === 'entrar' ? 'on' : ''}">Entrar</button><button type="button" data-a="tab" data-m="registro" class="${modo === 'registro' ? 'on' : ''}">Crear cuenta</button></div>
-      ${modo === 'registro' ? `<label>Nombre de jugador<input id="fnombre" maxlength="18" required autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Ej.: Diego_Poli" value="${esc(nombreRegistro)}">
+      ${modo === 'registro' ? `<label>Nombre de jugador<input id="fnombre" maxlength="18" required autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Ej.: Jugador_27" value="${esc(nombreRegistro)}">
         <small>De 3 a 18 caracteres: letras, números, espacios, punto, guion o guion bajo.</small></label>` : ''}
       <label>Email<input id="femail" type="email" required autocomplete="email" placeholder="Ej.: tunombre@gmail.com" value="${esc(ultimoEmail)}"></label>
       <label>Contraseña<input id="fpass" type="password" minlength="6" required autocomplete="${modo === 'registro' ? 'new-password' : 'current-password'}" placeholder="${modo === 'registro' ? 'Mínimo 6 caracteres. Ej.: Opos2026' : 'Tu contraseña'}">
@@ -304,7 +304,7 @@ function reglas() {
     <div><b>Coste y puntos:</b> cada carta cuesta energía ⚡ según su dificultad. Tienes ${E.ENERGIA}⚡ por ronda.</div>
     <div class="legend"><span class="chip d1">Fácil ⚡1 · 1 pt</span><span class="chip d2">Media ⚡2 · 2 pts</span><span class="chip d3">Difícil ⚡3 · 3 pts</span></div>
     <div>Si quien responde <b>acierta</b>, gana los puntos de la carta. Si <b>falla</b>, se los lleva quien la lanzó.</div>
-    <div><b>Como en Gwent:</b> 3 rondas y gana quien se lleve 2. Puedes <b>pasar</b> para guardar cartas para la siguiente ronda (+${E.ROBO} cartas nuevas).</div>
+    <div><b>El mejor de tres:</b> 3 rondas y gana quien se lleve 2. Puedes <b>pasar</b> para guardar cartas para la siguiente ronda (+${E.ROBO} cartas nuevas).</div>
     <div>Tienes <b>${E.TIEMPO} s</b> para responder desde que ves la pregunta y un <b>comodín 50/50</b> por partida.</div>
   </div><button class="big" data-a="cerrar">Entendido</button></div>`);
 }
