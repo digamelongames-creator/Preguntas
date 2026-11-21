@@ -1,0 +1,1232 @@
+{
+ "generado": "21/11/26, 21:35",
+ "admin": {
+  "primerDia": "2026-10-15",
+  "ultimoDia": "2026-11-19",
+  "diasEstudiados": 19,
+  "racha": 0,
+  "totales": {
+   "preguntas": 3184,
+   "vistas": 1145,
+   "cobertura": 36,
+   "atrasadasHoy": 583
+  },
+  "ult30": {
+   "dias": 15,
+   "respuestas": 2636,
+   "acierto": 85,
+   "aciertoRepasos": 84,
+   "minutos": 564
+  },
+  "semanas": [
+   {
+    "desde": "2026-11-16",
+    "diasEstudiados": 4,
+    "laborables": 5,
+    "respuestas": 807,
+    "acierto": 84,
+    "minutos": 178
+   },
+   {
+    "desde": "2026-11-09",
+    "diasEstudiados": 1,
+    "laborables": 5,
+    "respuestas": 16,
+    "acierto": 50,
+    "minutos": 2
+   },
+   {
+    "desde": "2026-11-02",
+    "diasEstudiados": 3,
+    "laborables": 5,
+    "respuestas": 65,
+    "acierto": 75,
+    "minutos": 12
+   },
+   {
+    "desde": "2026-10-26",
+    "diasEstudiados": 5,
+    "laborables": 5,
+    "respuestas": 1603,
+    "acierto": 85,
+    "minutos": 343
+   },
+   {
+    "desde": "2026-10-19",
+    "diasEstudiados": 4,
+    "laborables": 5,
+    "respuestas": 309,
+    "acierto": 89,
+    "minutos": 57
+   },
+   {
+    "desde": "2026-10-12",
+    "diasEstudiados": 2,
+    "laborables": 5,
+    "respuestas": 17,
+    "acierto": 76,
+    "minutos": 5
+   }
+  ],
+  "laborablesSinEstudiar28d": [
+   "2026-11-03",
+   "2026-11-05",
+   "2026-11-10",
+   "2026-11-11",
+   "2026-11-12",
+   "2026-11-13",
+   "2026-11-20"
+  ],
+  "porDia": {
+   "2026-10-15": {
+    "n": 10,
+    "ok": 7,
+    "rep": 0,
+    "repOk": 0,
+    "nuevas": 10,
+    "min": 3
+   },
+   "2026-10-16": {
+    "n": 7,
+    "ok": 6,
+    "rep": 4,
+    "repOk": 3,
+    "nuevas": 3,
+    "min": 2
+   },
+   "2026-10-21": {
+    "n": 54,
+    "ok": 48,
+    "rep": 2,
+    "repOk": 2,
+    "nuevas": 52,
+    "min": 10
+   },
+   "2026-10-22": {
+    "n": 110,
+    "ok": 94,
+    "rep": 0,
+    "repOk": 0,
+    "nuevas": 110,
+    "min": 18
+   },
+   "2026-10-23": {
+    "n": 130,
+    "ok": 120,
+    "rep": 1,
+    "repOk": 1,
+    "nuevas": 129,
+    "min": 27
+   },
+   "2026-10-25": {
+    "n": 15,
+    "ok": 13,
+    "rep": 3,
+    "repOk": 3,
+    "nuevas": 12,
+    "min": 2
+   },
+   "2026-10-26": {
+    "n": 432,
+    "ok": 369,
+    "rep": 114,
+    "repOk": 105,
+    "nuevas": 307,
+    "min": 92
+   },
+   "2026-10-27": {
+    "n": 355,
+    "ok": 315,
+    "rep": 101,
+    "repOk": 96,
+    "nuevas": 248,
+    "min": 66
+   },
+   "2026-10-28": {
+    "n": 207,
+    "ok": 168,
+    "rep": 10,
+    "repOk": 10,
+    "nuevas": 197,
+    "min": 42
+   },
+   "2026-10-29": {
+    "n": 366,
+    "ok": 310,
+    "rep": 21,
+    "repOk": 17,
+    "nuevas": 341,
+    "min": 89
+   },
+   "2026-10-30": {
+    "n": 243,
+    "ok": 202,
+    "rep": 133,
+    "repOk": 112,
+    "nuevas": 88,
+    "min": 54
+   },
+   "2026-11-02": {
+    "n": 17,
+    "ok": 13,
+    "rep": 15,
+    "repOk": 12,
+    "nuevas": 2,
+    "min": 3
+   },
+   "2026-11-04": {
+    "n": 31,
+    "ok": 24,
+    "rep": 26,
+    "repOk": 19,
+    "nuevas": 0,
+    "min": 5
+   },
+   "2026-11-06": {
+    "n": 17,
+    "ok": 12,
+    "rep": 17,
+    "repOk": 12,
+    "nuevas": 0,
+    "min": 4
+   },
+   "2026-11-09": {
+    "n": 16,
+    "ok": 8,
+    "rep": 14,
+    "repOk": 6,
+    "nuevas": 0,
+    "min": 2
+   },
+   "2026-11-16": {
+    "n": 157,
+    "ok": 124,
+    "rep": 125,
+    "repOk": 94,
+    "nuevas": 0,
+    "min": 36
+   },
+   "2026-11-17": {
+    "n": 308,
+    "ok": 252,
+    "rep": 248,
+    "repOk": 198,
+    "nuevas": 0,
+    "min": 70
+   },
+   "2026-11-18": {
+    "n": 283,
+    "ok": 250,
+    "rep": 245,
+    "repOk": 219,
+    "nuevas": 0,
+    "min": 57
+   },
+   "2026-11-19": {
+    "n": 59,
+    "ok": 50,
+    "rep": 50,
+    "repOk": 42,
+    "nuevas": 0,
+    "min": 15
+   }
+  },
+  "temas": [
+   {
+    "tema": 1,
+    "nombre": "El Derecho",
+    "total": 90,
+    "vistas": 12,
+    "atrasadas": 8,
+    "lapsos": 0,
+    "r30": 16,
+    "ok30": 16,
+    "rep30": 4,
+    "repOk30": 4,
+    "ultimo": 1794997647477,
+    "acierto30": 100,
+    "aciertoRepasos30": 100,
+    "cobertura": 13
+   },
+   {
+    "tema": 2,
+    "nombre": "La Constitución Española I",
+    "total": 110,
+    "vistas": 11,
+    "atrasadas": 10,
+    "lapsos": 2,
+    "r30": 22,
+    "ok30": 17,
+    "rep30": 6,
+    "repOk30": 4,
+    "ultimo": 1794217723170,
+    "acierto30": 77,
+    "aciertoRepasos30": 67,
+    "cobertura": 10
+   },
+   {
+    "tema": 3,
+    "nombre": "La Constitución Española II",
+    "total": 190,
+    "vistas": 12,
+    "atrasadas": 9,
+    "lapsos": 0,
+    "r30": 16,
+    "ok30": 15,
+    "rep30": 3,
+    "repOk30": 3,
+    "ultimo": 1794997555359,
+    "acierto30": 94,
+    "aciertoRepasos30": 100,
+    "cobertura": 6
+   },
+   {
+    "tema": 4,
+    "nombre": "Unión Europea y organismos internacionales",
+    "total": 50,
+    "vistas": 50,
+    "atrasadas": 14,
+    "lapsos": 10,
+    "r30": 142,
+    "ok30": 127,
+    "rep30": 88,
+    "repOk30": 78,
+    "ultimo": 1794993897928,
+    "acierto30": 89,
+    "aciertoRepasos30": 89,
+    "cobertura": 100
+   },
+   {
+    "tema": 5,
+    "nombre": "Administración General del Estado",
+    "total": 50,
+    "vistas": 50,
+    "atrasadas": 42,
+    "lapsos": 9,
+    "r30": 132,
+    "ok30": 114,
+    "rep30": 65,
+    "repOk30": 56,
+    "ultimo": 1794996542058,
+    "acierto30": 86,
+    "aciertoRepasos30": 86,
+    "cobertura": 100
+   },
+   {
+    "tema": 6,
+    "nombre": "Empleo público (TREBEP)",
+    "total": 50,
+    "vistas": 46,
+    "atrasadas": 26,
+    "lapsos": 4,
+    "r30": 102,
+    "ok30": 93,
+    "rep30": 38,
+    "repOk30": 34,
+    "ultimo": 1795084821466,
+    "acierto30": 91,
+    "aciertoRepasos30": 89,
+    "cobertura": 92
+   },
+   {
+    "tema": 7,
+    "nombre": "Ministerio del Interior",
+    "total": 120,
+    "vistas": 64,
+    "atrasadas": 36,
+    "lapsos": 3,
+    "r30": 119,
+    "ok30": 112,
+    "rep30": 61,
+    "repOk30": 58,
+    "ultimo": 1795109868704,
+    "acierto30": 94,
+    "aciertoRepasos30": 95,
+    "cobertura": 53
+   },
+   {
+    "tema": 8,
+    "nombre": "Dirección General de la Policía",
+    "total": 351,
+    "vistas": 65,
+    "atrasadas": 29,
+    "lapsos": 3,
+    "r30": 145,
+    "ok30": 137,
+    "rep30": 72,
+    "repOk30": 69,
+    "ultimo": 1795109949955,
+    "acierto30": 94,
+    "aciertoRepasos30": 96,
+    "cobertura": 19
+   },
+   {
+    "tema": 9,
+    "nombre": "Fuerzas y Cuerpos de Seguridad",
+    "total": 150,
+    "vistas": 62,
+    "atrasadas": 28,
+    "lapsos": 3,
+    "r30": 138,
+    "ok30": 134,
+    "rep30": 68,
+    "repOk30": 65,
+    "ultimo": 1795109964937,
+    "acierto30": 97,
+    "aciertoRepasos30": 96,
+    "cobertura": 41
+   },
+   {
+    "tema": 10,
+    "nombre": "Entrada, libre circulación y residencia en España",
+    "total": 130,
+    "vistas": 12,
+    "atrasadas": 8,
+    "lapsos": 2,
+    "r30": 25,
+    "ok30": 19,
+    "rep30": 6,
+    "repOk30": 4,
+    "ultimo": 1794997803475,
+    "acierto30": 76,
+    "aciertoRepasos30": 67,
+    "cobertura": 9
+   },
+   {
+    "tema": 11,
+    "nombre": "Infracciones en extranjería",
+    "total": 62,
+    "vistas": 38,
+    "atrasadas": 14,
+    "lapsos": 2,
+    "r30": 77,
+    "ok30": 71,
+    "rep30": 35,
+    "repOk30": 33,
+    "ultimo": 1794997973525,
+    "acierto30": 92,
+    "aciertoRepasos30": 94,
+    "cobertura": 61
+   },
+   {
+    "tema": 12,
+    "nombre": "Protección internacional",
+    "total": 50,
+    "vistas": 42,
+    "atrasadas": 23,
+    "lapsos": 11,
+    "r30": 104,
+    "ok30": 80,
+    "rep30": 37,
+    "repOk30": 26,
+    "ultimo": 1794998123386,
+    "acierto30": 77,
+    "aciertoRepasos30": 70,
+    "cobertura": 84
+   },
+   {
+    "tema": 13,
+    "nombre": "Seguridad privada: disposiciones generales",
+    "total": 100,
+    "vistas": 12,
+    "atrasadas": 6,
+    "lapsos": 0,
+    "r30": 20,
+    "ok30": 18,
+    "rep30": 6,
+    "repOk30": 6,
+    "ultimo": 1794997772115,
+    "acierto30": 90,
+    "aciertoRepasos30": 100,
+    "cobertura": 12
+   },
+   {
+    "tema": 14,
+    "nombre": "Protección de la seguridad ciudadana",
+    "total": 80,
+    "vistas": 12,
+    "atrasadas": 6,
+    "lapsos": 0,
+    "r30": 19,
+    "ok30": 18,
+    "rep30": 6,
+    "repOk30": 6,
+    "ultimo": 1794997751259,
+    "acierto30": 95,
+    "aciertoRepasos30": 100,
+    "cobertura": 15
+   },
+   {
+    "tema": 15,
+    "nombre": "Protección de infraestructuras críticas",
+    "total": 50,
+    "vistas": 12,
+    "atrasadas": 6,
+    "lapsos": 1,
+    "r30": 25,
+    "ok30": 19,
+    "rep30": 7,
+    "repOk30": 6,
+    "ultimo": 1794997755130,
+    "acierto30": 76,
+    "aciertoRepasos30": 86,
+    "cobertura": 24
+   },
+   {
+    "tema": 16,
+    "nombre": "Derecho penal: parte general",
+    "total": 150,
+    "vistas": 12,
+    "atrasadas": 8,
+    "lapsos": 0,
+    "r30": 17,
+    "ok30": 16,
+    "rep30": 4,
+    "repOk30": 4,
+    "ultimo": 1794996835802,
+    "acierto30": 94,
+    "aciertoRepasos30": 100,
+    "cobertura": 8
+   },
+   {
+    "tema": 17,
+    "nombre": "Delitos contra las personas",
+    "total": 100,
+    "vistas": 47,
+    "atrasadas": 30,
+    "lapsos": 11,
+    "r30": 115,
+    "ok30": 95,
+    "rep30": 53,
+    "repOk30": 42,
+    "ultimo": 1794998087008,
+    "acierto30": 83,
+    "aciertoRepasos30": 79,
+    "cobertura": 47
+   },
+   {
+    "tema": 18,
+    "nombre": "Delitos contra el patrimonio",
+    "total": 160,
+    "vistas": 50,
+    "atrasadas": 30,
+    "lapsos": 4,
+    "r30": 99,
+    "ok30": 88,
+    "rep30": 43,
+    "repOk30": 39,
+    "ultimo": 1794998519652,
+    "acierto30": 89,
+    "aciertoRepasos30": 91,
+    "cobertura": 31
+   },
+   {
+    "tema": 19,
+    "nombre": "Delitos contra el orden público",
+    "total": 30,
+    "vistas": 11,
+    "atrasadas": 5,
+    "lapsos": 1,
+    "r30": 21,
+    "ok30": 18,
+    "rep30": 7,
+    "repOk30": 6,
+    "ultimo": 1794997725009,
+    "acierto30": 86,
+    "aciertoRepasos30": 86,
+    "cobertura": 37
+   },
+   {
+    "tema": 20,
+    "nombre": "Delitos informáticos",
+    "total": 50,
+    "vistas": 11,
+    "atrasadas": 9,
+    "lapsos": 3,
+    "r30": 23,
+    "ok30": 18,
+    "rep30": 5,
+    "repOk30": 2,
+    "ultimo": 1794997465276,
+    "acierto30": 78,
+    "aciertoRepasos30": 40,
+    "cobertura": 22
+   },
+   {
+    "tema": 21,
+    "nombre": "Noción de derecho procesal penal",
+    "total": 130,
+    "vistas": 10,
+    "atrasadas": 8,
+    "lapsos": 0,
+    "r30": 12,
+    "ok30": 12,
+    "rep30": 2,
+    "repOk30": 2,
+    "ultimo": 1794996730562,
+    "acierto30": 100,
+    "aciertoRepasos30": 100,
+    "cobertura": 8
+   },
+   {
+    "tema": 22,
+    "nombre": "Estatuto de la víctima del delito",
+    "total": 40,
+    "vistas": 10,
+    "atrasadas": 5,
+    "lapsos": 0,
+    "r30": 15,
+    "ok30": 15,
+    "rep30": 5,
+    "repOk30": 5,
+    "ultimo": 1794997475304,
+    "acierto30": 100,
+    "aciertoRepasos30": 100,
+    "cobertura": 25
+   },
+   {
+    "tema": 23,
+    "nombre": "Políticas de igualdad, protección y no discriminación en la AGE",
+    "total": 100,
+    "vistas": 10,
+    "atrasadas": 4,
+    "lapsos": 1,
+    "r30": 20,
+    "ok30": 18,
+    "rep30": 7,
+    "repOk30": 6,
+    "ultimo": 1794997582148,
+    "acierto30": 90,
+    "aciertoRepasos30": 86,
+    "cobertura": 10
+   },
+   {
+    "tema": 24,
+    "nombre": "Introducción a la prevención de riesgos laborales",
+    "total": 30,
+    "vistas": 10,
+    "atrasadas": 6,
+    "lapsos": 0,
+    "r30": 15,
+    "ok30": 14,
+    "rep30": 4,
+    "repOk30": 4,
+    "ultimo": 1794997765927,
+    "acierto30": 93,
+    "aciertoRepasos30": 100,
+    "cobertura": 33
+   },
+   {
+    "tema": 25,
+    "nombre": "Marco normativo básico en prevención de riesgos laborales",
+    "total": 50,
+    "vistas": 13,
+    "atrasadas": 5,
+    "lapsos": 1,
+    "r30": 33,
+    "ok30": 22,
+    "rep30": 9,
+    "repOk30": 8,
+    "ultimo": 1794997610653,
+    "acierto30": 67,
+    "aciertoRepasos30": 89,
+    "cobertura": 26
+   },
+   {
+    "tema": 26,
+    "nombre": "La protección de datos de carácter personal",
+    "total": 70,
+    "vistas": 10,
+    "atrasadas": 5,
+    "lapsos": 0,
+    "r30": 17,
+    "ok30": 15,
+    "rep30": 5,
+    "repOk30": 5,
+    "ultimo": 1794997499903,
+    "acierto30": 88,
+    "aciertoRepasos30": 100,
+    "cobertura": 14
+   },
+   {
+    "tema": 27,
+    "nombre": "Derechos humanos",
+    "total": 76,
+    "vistas": 40,
+    "atrasadas": 16,
+    "lapsos": 10,
+    "r30": 103,
+    "ok30": 81,
+    "rep30": 40,
+    "repOk30": 30,
+    "ultimo": 1794996546581,
+    "acierto30": 79,
+    "aciertoRepasos30": 75,
+    "cobertura": 53
+   },
+   {
+    "tema": 28,
+    "nombre": "Globalización y antiglobalización",
+    "total": 76,
+    "vistas": 52,
+    "atrasadas": 20,
+    "lapsos": 12,
+    "r30": 136,
+    "ok30": 109,
+    "rep30": 64,
+    "repOk30": 52,
+    "ultimo": 1794996535375,
+    "acierto30": 80,
+    "aciertoRepasos30": 81,
+    "cobertura": 68
+   },
+   {
+    "tema": 29,
+    "nombre": "Actitudes y valores sociales",
+    "total": 71,
+    "vistas": 40,
+    "atrasadas": 17,
+    "lapsos": 15,
+    "r30": 117,
+    "ok30": 85,
+    "rep30": 44,
+    "repOk30": 29,
+    "ultimo": 1794995466389,
+    "acierto30": 73,
+    "aciertoRepasos30": 66,
+    "cobertura": 56
+   },
+   {
+    "tema": 30,
+    "nombre": "Principios éticos de la sociedad actual",
+    "total": 22,
+    "vistas": 22,
+    "atrasadas": 10,
+    "lapsos": 9,
+    "r30": 59,
+    "ok30": 45,
+    "rep30": 23,
+    "repOk30": 14,
+    "ultimo": 1794936212162,
+    "acierto30": 76,
+    "aciertoRepasos30": 61,
+    "cobertura": 100
+   },
+   {
+    "tema": 31,
+    "nombre": "Inmigración",
+    "total": 62,
+    "vistas": 40,
+    "atrasadas": 16,
+    "lapsos": 8,
+    "r30": 90,
+    "ok30": 76,
+    "rep30": 34,
+    "repOk30": 26,
+    "ultimo": 1795085801850,
+    "acierto30": 84,
+    "aciertoRepasos30": 76,
+    "cobertura": 65
+   },
+   {
+    "tema": 32,
+    "nombre": "Geografía humana",
+    "total": 75,
+    "vistas": 50,
+    "atrasadas": 18,
+    "lapsos": 7,
+    "r30": 127,
+    "ok30": 107,
+    "rep30": 54,
+    "repOk30": 47,
+    "ultimo": 1795109472999,
+    "acierto30": 84,
+    "aciertoRepasos30": 87,
+    "cobertura": 67
+   },
+   {
+    "tema": 33,
+    "nombre": "Seguridad",
+    "total": 66,
+    "vistas": 40,
+    "atrasadas": 21,
+    "lapsos": 15,
+    "r30": 111,
+    "ok30": 81,
+    "rep30": 39,
+    "repOk30": 24,
+    "ultimo": 1795109980954,
+    "acierto30": 73,
+    "aciertoRepasos30": 62,
+    "cobertura": 61
+   },
+   {
+    "tema": 34,
+    "nombre": "Drogodependencias",
+    "total": 26,
+    "vistas": 26,
+    "atrasadas": 7,
+    "lapsos": 4,
+    "r30": 64,
+    "ok30": 53,
+    "rep30": 26,
+    "repOk30": 22,
+    "ultimo": 1795109987521,
+    "acierto30": 83,
+    "aciertoRepasos30": 85,
+    "cobertura": 100
+   },
+   {
+    "tema": 35,
+    "nombre": "Desarrollo sostenible",
+    "total": 66,
+    "vistas": 40,
+    "atrasadas": 20,
+    "lapsos": 16,
+    "r30": 121,
+    "ok30": 81,
+    "rep30": 40,
+    "repOk30": 24,
+    "ultimo": 1795109984948,
+    "acierto30": 67,
+    "aciertoRepasos30": 60,
+    "cobertura": 61
+   },
+   {
+    "tema": 38,
+    "nombre": "Informática básica y sistemas operativos",
+    "total": 17,
+    "vistas": 17,
+    "atrasadas": 1,
+    "lapsos": 1,
+    "r30": 38,
+    "ok30": 35,
+    "rep30": 18,
+    "repOk30": 17,
+    "ultimo": 1794997746530,
+    "acierto30": 92,
+    "aciertoRepasos30": 94,
+    "cobertura": 100
+   },
+   {
+    "tema": 39,
+    "nombre": "Redes informáticas",
+    "total": 13,
+    "vistas": 13,
+    "atrasadas": 6,
+    "lapsos": 4,
+    "r30": 38,
+    "ok30": 28,
+    "rep30": 14,
+    "repOk30": 10,
+    "ultimo": 1794997815525,
+    "acierto30": 74,
+    "aciertoRepasos30": 71,
+    "cobertura": 100
+   },
+   {
+    "tema": 40,
+    "nombre": "Inteligencia y fuentes abiertas",
+    "total": 8,
+    "vistas": 8,
+    "atrasadas": 6,
+    "lapsos": 1,
+    "r30": 12,
+    "ok30": 11,
+    "rep30": 11,
+    "repOk30": 10,
+    "ultimo": 1794937386382,
+    "acierto30": 92,
+    "aciertoRepasos30": 91,
+    "cobertura": 100
+   },
+   {
+    "tema": 41,
+    "nombre": "Ciberdelincuencia",
+    "total": 20,
+    "vistas": 20,
+    "atrasadas": 12,
+    "lapsos": 0,
+    "r30": 41,
+    "ok30": 41,
+    "rep30": 20,
+    "repOk30": 20,
+    "ultimo": 1794937600471,
+    "acierto30": 100,
+    "aciertoRepasos30": 100,
+    "cobertura": 100
+   },
+   {
+    "tema": 42,
+    "nombre": "Armas de fuego",
+    "total": 34,
+    "vistas": 34,
+    "atrasadas": 25,
+    "lapsos": 3,
+    "r30": 77,
+    "ok30": 65,
+    "rep30": 39,
+    "repOk30": 36,
+    "ultimo": 1794998101319,
+    "acierto30": 84,
+    "aciertoRepasos30": 92,
+    "cobertura": 100
+   },
+   {
+    "tema": 45,
+    "nombre": "Seguridad vial",
+    "total": 9,
+    "vistas": 9,
+    "atrasadas": 8,
+    "lapsos": 1,
+    "r30": 13,
+    "ok30": 11,
+    "rep30": 11,
+    "repOk30": 10,
+    "ultimo": 1794934786373,
+    "acierto30": 85,
+    "aciertoRepasos30": 91,
+    "cobertura": 100
+   }
+  ],
+  "masFalladas": [
+   {
+    "id": "ffa5ad2018fb",
+    "tema": 17,
+    "fallos": 5,
+    "veces": 8,
+    "pregunta": "¿Con qué pena se castiga a quien coopere ejecutivamente causando la muerte de otro por petición expresa de est"
+   },
+   {
+    "id": "246678b0be53",
+    "tema": 29,
+    "fallos": 4,
+    "veces": 6,
+    "pregunta": "Según el autor Milton Rokeach, una organización cognoscitiva de convicciones acerca de la realidad relativamen"
+   },
+   {
+    "id": "9aa005e7bedf",
+    "tema": 33,
+    "fallos": 4,
+    "veces": 6,
+    "pregunta": "En la clasificación de víctimas de Gerardo Landrove Díaz, las víctimas que desempeñan cierto papel en el orige"
+   },
+   {
+    "id": "7c0804f5f98e",
+    "tema": 5,
+    "fallos": 4,
+    "veces": 9,
+    "pregunta": "Los Directores de Gabinete de los Secretarios de Estado serán nombrados:"
+   },
+   {
+    "id": "b91dde5c28df",
+    "tema": 12,
+    "fallos": 3,
+    "veces": 5,
+    "pregunta": "Se podrá proceder a la devolución de un ciudadano extranjero que haya tramitado una solicitud de protección in"
+   },
+   {
+    "id": "40531d586fb8",
+    "tema": 17,
+    "fallos": 3,
+    "veces": 5,
+    "pregunta": "¿Qué pena corresponde a quien produzca el aborto de una mujer sin su consentimiento, conforme al art. 144 CP?"
+   },
+   {
+    "id": "09fe9da029cb",
+    "tema": 39,
+    "fallos": 3,
+    "veces": 5,
+    "pregunta": "¿Cuál es la capa encargada de realizar el encaminamiento o enrutamiento de los paquetes a través de las redes "
+   },
+   {
+    "id": "76606f722227",
+    "tema": 35,
+    "fallos": 3,
+    "veces": 5,
+    "pregunta": "La ONU aprobó la Agenda 2030 sobre el Desarrollo Sostenible, una oportunidad para que los países y sus socieda"
+   },
+   {
+    "id": "88c9f8171df9",
+    "tema": 28,
+    "fallos": 3,
+    "veces": 5,
+    "pregunta": "Según el temario, Theodore Levitt utilizó por primera vez el término «globalización» en su artículo «La global"
+   },
+   {
+    "id": "fe99a67cccbb",
+    "tema": 30,
+    "fallos": 3,
+    "veces": 5,
+    "pregunta": "El proceso de integración de un individuo o grupo en la cultura y en la sociedad con las que entra en contacto"
+   },
+   {
+    "id": "80480342aa9d",
+    "tema": 7,
+    "fallos": 3,
+    "veces": 5,
+    "pregunta": "La dirección del Sistema Nacional de Protección de Infraestructuras Críticas es, conforme al artículo 2.1.m) d"
+   },
+   {
+    "id": "e15p141q0",
+    "tema": 15,
+    "fallos": 3,
+    "veces": 5,
+    "pregunta": "La ley por la que se establecen medidas para la protección de las infraestructuras críticas es la:"
+   },
+   {
+    "id": "e25p225q0",
+    "tema": 25,
+    "fallos": 3,
+    "veces": 5,
+    "pregunta": "La LPRL transpone la Directiva:"
+   },
+   {
+    "id": "2d7337f13107",
+    "tema": 33,
+    "fallos": 3,
+    "veces": 5,
+    "pregunta": "La teoría del control social de Travis Hirschi, según la cual la sociedad tiene miedo a delinquir por sus cons"
+   },
+   {
+    "id": "e10p95q7",
+    "tema": 10,
+    "fallos": 3,
+    "veces": 5,
+    "pregunta": "¿Cuántos países forman Schengen según el cuadro?"
+   },
+   {
+    "id": "dbd6d96d54af",
+    "tema": 35,
+    "fallos": 3,
+    "veces": 5,
+    "pregunta": "El instrumento de ámbito estatal dirigido a optimizar las oportunidades en la actividad y el empleo de la tran"
+   },
+   {
+    "id": "147ebfbdd827",
+    "tema": 18,
+    "fallos": 3,
+    "veces": 6,
+    "pregunta": "¿Qué pena corresponde al tipo básico de hurto del art. 234.1 CP cuando la cuantía de lo sustraído excede de 40"
+   },
+   {
+    "id": "1950da21f4f7",
+    "tema": 32,
+    "fallos": 3,
+    "veces": 6,
+    "pregunta": "Según la ley fundamental de circulación del rumor de Gordon Allport, el rumor circula en mayor cantidad a medi"
+   },
+   {
+    "id": "efee8ef87341",
+    "tema": 30,
+    "fallos": 3,
+    "veces": 6,
+    "pregunta": "¿Qué autor sitúa la responsabilidad como principio de la acción moral en las complejas sociedades modernas?"
+   },
+   {
+    "id": "3a763e14e95b",
+    "tema": 5,
+    "fallos": 3,
+    "veces": 6,
+    "pregunta": "Proponer al Rey la convocatoria de un referéndum consultivo corresponde al Presidente del Gobierno:"
+   }
+  ]
+ },
+ "amigos": [
+  {
+   "usuario": "aaaaaa",
+   "activo": true,
+   "temasAsignados": 0,
+   "ultimoAcceso": "6/11/26, 15:59",
+   "hoy": {
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult7": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult30": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "racha": 0,
+   "dispositivos": 1,
+   "temas": []
+  },
+  {
+   "usuario": "gabi01",
+   "activo": true,
+   "temasAsignados": 41,
+   "ultimoAcceso": "10/11/26, 15:06",
+   "hoy": {
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult7": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult30": {
+    "dias": 1,
+    "respuestas": 3,
+    "acierto": 100,
+    "minutos": 3
+   },
+   "racha": 0,
+   "dispositivos": 1,
+   "temas": [
+    {
+     "tema": 10,
+     "nombre": "Entrada, libre circulación y residencia en España",
+     "respuestas": 2,
+     "acierto": 100
+    },
+    {
+     "tema": 1,
+     "nombre": "El Derecho",
+     "respuestas": 1,
+     "acierto": 100
+    }
+   ]
+  },
+  {
+   "usuario": "usuario01",
+   "activo": true,
+   "temasAsignados": 26,
+   "ultimoAcceso": "6/11/26, 16:05",
+   "hoy": {
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult7": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult30": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "racha": 0,
+   "dispositivos": 1,
+   "temas": []
+  },
+  {
+   "usuario": "usuario02",
+   "activo": true,
+   "temasAsignados": 41,
+   "ultimoAcceso": "6/11/26, 16:06",
+   "hoy": {
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult7": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult30": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "racha": 0,
+   "dispositivos": 1,
+   "temas": []
+  },
+  {
+   "usuario": "usuario03",
+   "activo": true,
+   "temasAsignados": 0,
+   "ultimoAcceso": "nunca",
+   "hoy": {
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult7": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult30": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "racha": 0,
+   "dispositivos": 0,
+   "temas": []
+  },
+  {
+   "usuario": "usuario04",
+   "activo": true,
+   "temasAsignados": 0,
+   "ultimoAcceso": "nunca",
+   "hoy": {
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult7": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult30": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "racha": 0,
+   "dispositivos": 0,
+   "temas": []
+  },
+  {
+   "usuario": "usuario05",
+   "activo": true,
+   "temasAsignados": 0,
+   "ultimoAcceso": "nunca",
+   "hoy": {
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult7": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "ult30": {
+    "dias": 0,
+    "respuestas": 0,
+    "acierto": null,
+    "minutos": 0
+   },
+   "racha": 0,
+   "dispositivos": 0,
+   "temas": []
+  }
+ ]
+}
