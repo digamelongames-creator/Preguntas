@@ -119,6 +119,8 @@ main{max-width:760px;margin:0 auto;padding-bottom:110px}
 .cols b.z{color:var(--zero)}
 .more{width:40px;height:44px;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;flex:none}
 .more svg{width:22px;height:22px;fill:currentColor}
+.todo-add{display:flex;gap:8px;padding-block:16px}.todo-add input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:10px 12px;font-size:15px}
+.todo-it{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.todo-it input{width:20px;height:20px;flex:none;accent-color:var(--accent)}.todo-it span{flex:1;line-height:1.4;word-break:break-word}.todo-it.done span{text-decoration:line-through;color:var(--muted)}.todo-it button{border:0;background:transparent;color:var(--muted);font-size:20px;padding:4px 8px;cursor:pointer}
 .empty{padding:48px 24px;text-align:center;color:var(--muted);line-height:1.5}
 .legend{padding-block:12px;color:var(--muted);font-size:12.5px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
 .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px;border:2px solid var(--zero)}
@@ -425,6 +427,7 @@ table.plan{width:100%;border-collapse:collapse;font-size:13.5px}
   <section id="vEstQ" hidden></section>
   <section id="vStats" hidden><div class="stbar pad" id="periods"></div><div id="statsBody"></div></section>
   <section id="vUsers" hidden></section>
+  <section id="vTodo" hidden></section>
   <section id="vSettings" hidden><div class="form pad" id="settingsBody"></div></section>
 </main>
 
@@ -438,6 +441,7 @@ table.plan{width:100%;border-collapse:collapse;font-size:13.5px}
   <button class="dritem" data-go="estudio"><svg viewBox="0 0 24 24"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5z"/></svg>Estudio</button>
   <button class="dritem" id="voiceDr"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11z"/></svg>Estudiar por voz</button>
   <button class="dritem" data-go="marks"><svg viewBox="0 0 24 24"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>Marcadas</button>
+  <button class="dritem" data-go="todo"><svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-9 14-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Tareas</button>
   <button class="dritem" data-go="stats"><svg viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/></svg>Estadísticas</button>
   <button class="dritem" data-go="settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58-1.92-3.32-2.39.96a7.03 7.03 0 0 0-1.63-.94L14.87 3.5h-3.84l-.36 2.68c-.59.24-1.13.56-1.63.94l-2.39-.96-1.92 3.32 2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58 1.92 3.32 2.39-.96c.5.38 1.04.7 1.63.94l.36 2.68h3.84l.36-2.68c.59-.24 1.13-.56 1.63-.94l2.39.96 1.92-3.32zM12.95 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>Ajustes</button>
   <button class="dritem" data-go="users" id="usersDr" hidden><svg viewBox="0 0 24 24"><path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05A4.22 4.22 0 0 1 17 16.5V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Usuarios</button>
@@ -734,7 +738,7 @@ function commit(cid,ease,ms,o,tt){const c=CARDS[cid],did=c.did,n=now(),st=ST[did
 let view="decks",curDeck=null,statDeck="all",period=30;
 const ICON_MENU='<path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/>',ICON_BACK='<path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/>';
 function go(v,opts){view=v;if(opts&&opts.deck)curDeck=opts.deck;
-  ["vDecks","vOverview","vReview","vStats","vSettings","vVoice","vMarks","vTestOv","vTest","vEstudio","vEstQ","vUsers"].forEach(id=>$("#"+id).hidden=true);
+  ["vDecks","vOverview","vReview","vStats","vSettings","vVoice","vMarks","vTestOv","vTest","vEstudio","vEstQ","vUsers","vTodo"].forEach(id=>$("#"+id).hidden=true);
   const sub=v==="overview"||v==="review"||v==="voice"||v==="testov"||v==="test"||v==="estq";document.body.classList.toggle("reviewing",v==="review");
   $("#navIcon").innerHTML=sub?ICON_BACK:ICON_MENU;$("#navBtn").setAttribute("aria-label",sub?"Volver":"Menú");
   $("#fab").hidden=v!=="decks";$("#barCounts").hidden=v!=="review";$("#undoBtn").hidden=v!=="review"||!undo;$("#editBtn").hidden=v!=="review"||accFriend();$("#statDeck").hidden=v!=="stats";
@@ -750,6 +754,7 @@ function go(v,opts){view=v;if(opts&&opts.deck)curDeck=opts.deck;
   if(v==="voice"){$("#title").textContent="Estudiar por voz";$("#vVoice").hidden=false;renderVoice()}
   if(v==="stats"){$("#title").textContent="Estadísticas";$("#vStats").hidden=false;renderStats()}
   if(v==="users"){$("#title").textContent="Usuarios";$("#vUsers").hidden=false;renderUsers()}
+  if(v==="todo"){$("#title").textContent="Tareas";$("#vTodo").hidden=false;renderTodo()}
   if(v==="settings"){$("#title").textContent="Ajustes";$("#vSettings").hidden=false;renderSettings()}
   closeDrawer();window.scrollTo(0,0)}
 $("#navBtn").onclick=()=>{if(view==="estq"){ER=null;go("estudio");return}if(view==="test"){if(TR&&!TR.result)testSaveProg();TR=null;go("testov");return}if(view==="testov"){go("decks");return}if(view==="voice"){voiceExit();return}if(view==="review"&&curDeck==="_marks"){go("marks");return}if(view==="review"&&curDeck==="_mix"){MIX=null;go("decks");return}if(view==="review"){const d=curDeck;go("overview");if(sess.done)maybeRefuerzo(d)}else if(view==="overview")go("decks");else openDrawer()};
@@ -1700,6 +1705,18 @@ async function accReport(){clearTimeout(actT);if(!accFriend()||!navigator.onLine
 document.addEventListener("visibilitychange",()=>{if(!ACC)return;
   if(document.hidden){lastHidden=now();accReport()}
   else{if(accFriend()&&lastHidden&&now()-lastHidden>30*60000){accEntrada();accActSoon()}accRecheck()}});
+
+/* ---------- pestaña Tareas (lista simple, guardada en este dispositivo) ---------- */
+const todoKey=()=>"todo."+(ACC&&ACC.u||"yo");
+function todoLoad(){try{return JSON.parse(localStorage.getItem(todoKey())||"[]")}catch(e){return[]}}
+function todoSave(l){try{localStorage.setItem(todoKey(),JSON.stringify(l))}catch(e){}}
+function renderTodo(){const l=todoLoad(),box=$("#vTodo");
+  box.innerHTML='<form class="todo-add pad"><input placeholder="Nueva tarea…" maxlength="200" aria-label="Nueva tarea"><button class="tbtn">Añadir</button></form><div class="pad">'+
+    (l.length?l.map((t,i)=>'<div class="todo-it'+(t.d?' done':'')+'"><input type="checkbox" data-i="'+i+'"'+(t.d?' checked':'')+'><span>'+esc(t.t)+'</span><button data-del="'+i+'" aria-label="Borrar">×</button></div>').join(""):'<div class="empty">No tienes tareas. Escribe una arriba.</div>')+'</div>';
+  const f=box.querySelector("form"),inp=f.querySelector("input");
+  f.onsubmit=e=>{e.preventDefault();const t=inp.value.trim();if(!t)return;l.push({t,d:false});todoSave(l);renderTodo();$("#vTodo input").focus()};
+  box.querySelectorAll("[data-i]").forEach(c=>c.onchange=()=>{l[c.dataset.i].d=c.checked;todoSave(l);renderTodo()});
+  box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{l.splice(b.dataset.del,1);todoSave(l);renderTodo()})}
 
 /* ---------- pestaña Usuarios (solo Diego) ---------- */
 const UV={act:{},open:null,msg:""};
