@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1d5fae">
+<title>Mudanza · Mazos Oposición</title>
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#eef1f6;font-family:system-ui,sans-serif;color:#1b2433}
+.box{background:#fff;border-radius:18px;padding:28px 22px;max-width:360px;margin:16px;box-shadow:0 8px 30px rgba(20,40,80,.12);text-align:center}
+h1{font-size:22px;margin:0 0 10px;color:#1d5fae}
+p{font-size:15px;line-height:1.5;margin:0 0 16px}
+a[hidden]{display:none}
+a{display:inline-block;background:#1d5fae;color:#fff;text-decoration:none;padding:12px 20px;border-radius:12px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>Mudando tus datos…</h1>
+  <p id="m">Un momento, estamos trayendo tu progreso.</p>
+  <a id="ir" href="/" hidden>Abrir Mazos</a>
+</div>
+<script>
+// Recibe el progreso que la app antigua (github.io) dejó en Firebase con un código de un solo uso.
+(async () => {
+  const FB = "https://curva-olvido-f89d1-default-rtdb.europe-west1.firebasedatabase.app/mazosOposicion/traslados/";
+  const m = document.getElementById("m"), ir = document.getElementById("ir"), h1 = document.querySelector("h1");
+  const fin = (titulo, texto) => { h1.textContent = titulo; m.textContent = texto; ir.hidden = false; };
+  const code = location.hash.slice(1);
+  if (!/^[a-z0-9]{8,24}$/.test(code)) return fin("Nada que mudar", "Este enlace no trae ningún traslado.");
+  try {
+    const r = await fetch(FB + code + ".json", { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    if (!d || !d.json) return fin("Enlace ya usado", "Este traslado ya se hizo o ha caducado. Si te mudaste antes, tu progreso ya está aquí.");
+    const { ls, idb } = JSON.parse(d.json);
+    for (const k in ls || {}) localStorage.setItem(k, ls[k]);
+    await new Promise((res, rej) => {
+      const o = indexedDB.open("mazos-oposicion", 1);
+      o.onupgradeneeded = () => o.result.createObjectStore("kv");
+      o.onerror = () => rej(new Error("no se pudo abrir el almacenamiento"));
+      o.onsuccess = () => {
+        const tx = o.result.transaction("kv", "readwrite"), st = tx.objectStore("kv");
+        for (const k in idb || {}) st.put(idb[k], k);
+        tx.oncomplete = res; tx.onerror = () => rej(new Error("no se pudo guardar el progreso"));
+      };
+    });
+    await fetch(FB + code + ".json", { method: "DELETE" }).catch(() => {});
+    history.replaceState(null, "", location.pathname);
+    fin("¡Mudanza hecha!", "Tu progreso ya está en www.oposinator.com. Ahora abriremos la app.");
+    setTimeout(() => location.replace("/"), 1500);
+  } catch (e) {
+    fin("No se pudo completar", "Error: " + e.message + ". Vuelve a la app antigua y pulsa otra vez «Mudarme».");
+  }
+})();
+</script>
+</body>
+</html>

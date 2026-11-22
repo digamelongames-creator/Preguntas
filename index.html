@@ -1805,5 +1805,37 @@ $("#fsBtn").onclick=()=>{closeDrawer();const d=document;if(d.fullscreenElement)d
 start();
 })();
 </script>
+<script>
+// Mudanza a www.oposinator.com: solo en la dirección antigua (github.io) y solo cuando la web nueva ya responde.
+(function(){
+  if(!/github\.io$/.test(location.hostname))return;
+  var NUEVO="https://www.oposinator.com";
+  var FB="https://curva-olvido-f89d1-default-rtdb.europe-west1.firebasedatabase.app/mazosOposicion/traslados/";
+  var HECHO="mazosOposicion.mudado";
+  try{if(sessionStorage.getItem("mudanzaLuego"))return}catch(e){}
+  fetch(NUEVO+"/traslado.html",{mode:"no-cors",cache:"no-store"}).then(mostrar).catch(function(){});
+  function mostrar(){
+    var ya=false;try{ya=!!localStorage.getItem(HECHO)}catch(e){}
+    var d=document.createElement("div");
+    d.style.cssText="position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#1d5fae;color:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.3);font:15px/1.45 system-ui,sans-serif;max-width:520px;margin:0 auto";
+    d.innerHTML=ya
+      ?'<b>Ya te has mudado.</b> Usa la app en <b>www.oposinator.com</b> e instálala desde allí.<div style="display:flex;gap:8px;margin-top:10px"><a href="'+NUEVO+'" style="flex:1;text-align:center;background:#fff;color:#1d5fae;border-radius:10px;padding:10px;font-weight:700;text-decoration:none">Abrir la nueva</a><button id="mzLuego" style="flex:none;background:transparent;color:#fff;border:1px solid #fff8;border-radius:10px;padding:10px 14px">Cerrar</button></div>'
+      :'<b>Mazos se muda a www.oposinator.com.</b> Pulsa «Mudarme» para llevarte tu progreso. Tarda unos segundos.<div style="display:flex;gap:8px;margin-top:10px"><button id="mzMudar" style="flex:1;background:#fff;color:#1d5fae;border:0;border-radius:10px;padding:10px;font-weight:700">Mudarme</button><button id="mzLuego" style="flex:none;background:transparent;color:#fff;border:1px solid #fff8;border-radius:10px;padding:10px 14px">Luego</button></div><div id="mzMsg" style="font-size:13px;margin-top:6px"></div>';
+    document.body.appendChild(d);
+    document.getElementById("mzLuego").onclick=function(){try{sessionStorage.setItem("mudanzaLuego","1")}catch(e){}d.remove()};
+    var b=document.getElementById("mzMudar");if(b)b.onclick=function(){b.disabled=true;b.textContent="Preparando…";mudar().catch(function(e){b.disabled=false;b.textContent="Reintentar";document.getElementById("mzMsg").textContent="No se pudo: "+e.message})};
+  }
+  function leerIDB(){return new Promise(function(res){var out={};try{var o=indexedDB.open("mazos-oposicion",1);o.onupgradeneeded=function(){o.result.createObjectStore("kv")};o.onerror=function(){res(out)};o.onsuccess=function(){try{var c=o.result.transaction("kv").objectStore("kv").openCursor();c.onsuccess=function(){var cur=c.result;if(cur){out[cur.key]=cur.value;cur.continue()}else res(out)};c.onerror=function(){res(out)}}catch(e){res(out)}}}catch(e){res(out)}})}
+  async function mudar(){
+    var ls={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^(mazosOposicion\.|todo\.|fcOpts$)/.test(k)&&k!==HECHO)ls[k]=localStorage.getItem(k)}
+    var idb=await leerIDB();
+    var code=Array.from(crypto.getRandomValues(new Uint8Array(16)),function(x){return(x%36).toString(36)}).join("");
+    var r=await fetch(FB+code+".json",{method:"PUT",body:JSON.stringify({t:Date.now(),json:JSON.stringify({ls:ls,idb:idb})})});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    try{localStorage.setItem(HECHO,String(Date.now()))}catch(e){}
+    location.href=NUEVO+"/traslado.html#"+code;
+  }
+})();
+</script>
 </body>
 </html>
