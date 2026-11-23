@@ -380,6 +380,17 @@ table.plan{width:100%;border-collapse:collapse;font-size:13.5px}
 .acc-card{background:var(--surface);border-radius:12px;box-shadow:var(--shadow);padding:24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px}
 .acc-logo{font-size:20px;font-weight:500;color:var(--accent)}.acc-sub{font-size:13px;color:var(--muted);margin-top:-8px}
 .acc-card .fbtn{padding:13px;font-size:15px}.acc-err{color:var(--learn);font-size:13.5px;min-height:1.2em;margin:0}
+.acc-err.ok{color:var(--accent)}
+.acc-t{font-size:17px;font-weight:600}
+.acc-txt{font-size:14px;line-height:1.45;margin:0}
+.acc-mini{font-size:12.5px;color:var(--muted)}
+.acc-aviso{background:var(--bg);border-radius:8px;padding:10px 12px}
+.acc-help{display:block;font-size:12px;color:var(--muted);margin-top:4px}
+.acc-tabs{display:flex;background:var(--bg);border-radius:10px;padding:3px;gap:3px}
+.acc-tabs button{flex:1;border:0;background:transparent;padding:9px;border-radius:8px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer}
+.acc-tabs button[aria-selected="true"]{background:var(--surface);color:var(--accent);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.acc-link{border:0;background:none;color:var(--accent);font:inherit;font-size:13.5px;padding:4px;cursor:pointer}
+#accLogin{overflow-y:auto}
 .accname{display:block;margin-top:6px;font-size:12.5px;opacity:.85}
 .utable{overflow-x:auto;background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .utable table{width:100%;border-collapse:collapse;font-size:13.5px}
@@ -1632,58 +1643,109 @@ function renderSettings(){
     Object.keys(ST).forEach(did=>{ST[did]={};saveSrs(did)});Object.keys(LOG).forEach(ds=>{LOG[ds]=[];saveLog(ds)});go("decks");toast("Progreso reiniciado")})}
 
 
-/* ---------- acceso de usuarios (amigos) y control de actividad ---------- */
-// Usuarios, contraseñas y temas viven en Firebase: mazosOposicion/amigos/accesos.
-// La primera vez, Diego elige su contraseña y la app crea usuario01…05 con contraseñas aleatorias.
-const ACC_DB=DEFAULT_FB+"/mazosOposicion/amigos";
-const ACC_SKEY="mazosOposicion.sesion",ACC_CKEY="mazosOposicion.accesosCache",ACC_DKEY="mazosOposicion.dispositivo";
-let ACC=null,ACCLIST=null;
+/* ---------- cuentas con correo (las mismas que Duelo de Preguntas) ---------- */
+// Cada persona se crea su cuenta con correo y contraseña (Firebase Authentication del proyecto curva-olvido-f89d1)
+// y la activa con el enlace que le llega al correo. Toda cuenta confirmada tiene acceso a todos los temas.
+// Perfiles y actividad viven en Firebase: mazosOposicion/cuentas/{perfiles,actividad}/<uid>.
+const FB_KEY="AIzaSyAfWfKxG5Oz1om4bbtXgAze_n9ZNaFHOmU";
+const ADMIN_EMAILS=["diegojdevesa@gmail.com"];
+const CUE_DB=DEFAULT_FB+"/mazosOposicion/cuentas";
+const CUE_KEY="mazosOposicion.cuenta",ACC_SKEY="mazosOposicion.sesion",ACC_DKEY="mazosOposicion.dispositivo";
+const NOMBRE_OK=/^[\p{L}\p{N} _.-]{3,18}$/u;
+let ACC=null,CUE=null,TOK={t:"",exp:0};
 const accFriend=()=>!!(ACC&&!ACC.admin);
-function accFetch(path,opts){const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),8000);
-  return fetch(ACC_DB+path+".json",Object.assign({signal:ctl.signal},opts||{})).finally(()=>clearTimeout(tm))}
-async function accLoadList(){
-  try{const r=await accFetch("/accesos");if(!r.ok)throw new Error(await fbErr(r));let d=await r.json();
-    if(!d||typeof d!=="object"){ACCLIST={};return true}
-    ACCLIST=d;try{localStorage.setItem(ACC_CKEY,JSON.stringify(d))}catch(e){}return true}
-  catch(e){try{ACCLIST=JSON.parse(localStorage.getItem(ACC_CKEY)||"null")}catch(er){}if(!ACCLIST)ACCLIST={};return false}}
-const accTemas=u=>{const t=u&&u.temas;if(t==="todos")return"todos";return Array.isArray(t)?t.map(Number):(t&&typeof t==="object"?Object.values(t).map(Number):[])};
-function accCheck(u,c){const x=ACCLIST&&ACCLIST[u];if(!x)return"Usuario o contraseña incorrectos";if(String(x.clave)!==String(c))return"Usuario o contraseña incorrectos";if(x.activo===false)return"Tu cuenta está desactivada. Habla con Diego.";return""}
-function accSet(u){const x=ACCLIST[u];ACC={u,admin:!!x.admin,nombre:x.nombre||u,temas:x.admin?"todos":accTemas(x)}}
-const temaOk=n=>!ACC||ACC.temas==="todos"||ACC.temas.includes(parseInt(n,10));
-function accLoginScreen(msg){return new Promise(res=>{const d=document.createElement("div");d.id="accLogin";
-  d.innerHTML='<form class="acc-card" autocomplete="on"><div class="acc-logo">Mazos Oposición</div><div class="acc-sub">Policía Nacional · acceso</div>'+
-    '<div class="field"><label for="accU">Usuario</label><input id="accU" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>'+
-    '<div class="field"><label for="accC">Contraseña</label><input id="accC" type="password" autocomplete="current-password" required></div>'+
-    '<button class="fbtn" type="submit">Entrar</button><p class="acc-err" role="alert">'+esc(msg||"")+'</p></form>';
-  document.body.appendChild(d);const f=d.querySelector("form");
-  f.onsubmit=async e=>{e.preventDefault();const u=$("#accU").value.trim().toLowerCase(),c=$("#accC").value;
-    f.querySelector("button").disabled=true;await accLoadList();f.querySelector("button").disabled=false;
-    const err=accCheck(u,c);if(err){d.querySelector(".acc-err").textContent=err;return}
-    try{localStorage.setItem(ACC_SKEY,JSON.stringify({u,c}))}catch(e){}d.remove();accSet(u);res()}})}
-function accPw(){const a="abcdefghjkmnpqrstuvwxyz23456789";let pw="";const rnd=new Uint32Array(8);crypto.getRandomValues(rnd);rnd.forEach(v=>pw+=a[v%a.length]);return pw}
-function accSetupScreen(){return new Promise(res=>{const d=document.createElement("div");d.id="accLogin";
-  d.innerHTML='<form class="acc-card"><div class="acc-logo">Configurar acceso</div><div class="acc-sub">Primera vez: elige tu contraseña de administrador. Se crearán usuario01 a usuario05 con contraseñas aleatorias, que verás en la pestaña Usuarios.</div>'+
-    '<div class="field"><label for="accU">Tu usuario</label><input id="accU" value="diego" autocomplete="username" autocapitalize="none"></div>'+
-    '<div class="field"><label for="accC">Tu contraseña</label><input id="accC" type="password" autocomplete="new-password" minlength="6" required></div>'+
-    '<div class="field"><label for="accC2">Repite la contraseña</label><input id="accC2" type="password" autocomplete="new-password" required></div>'+
-    '<button class="fbtn" type="submit">Crear</button><p class="acc-err" role="alert"></p></form>';
-  document.body.appendChild(d);const f=d.querySelector("form"),err=t=>d.querySelector(".acc-err").textContent=t;
-  f.onsubmit=async e=>{e.preventDefault();const u=$("#accU").value.trim().toLowerCase(),c=$("#accC").value;
-    if(!/^[a-z0-9._-]{3,30}$/.test(u))return err("Usuario de 3 a 30 letras o números, sin espacios.");
-    if(c.length<6)return err("La contraseña debe tener al menos 6 caracteres.");if(c!==$("#accC2").value)return err("Las contraseñas no coinciden.");
-    const list={[u]:{nombre:"Diego",clave:c,admin:true,activo:true,temas:"todos"}};
-    for(let i=1;i<=5;i++)list["usuario"+String(i).padStart(2,"0")]={nombre:"Usuario "+String(i).padStart(2,"0"),clave:accPw(),activo:true,temas:[]};
-    try{const r=await accFetch("/accesos",{method:"PUT",body:JSON.stringify(list)});if(!r.ok)throw new Error(await fbErr(r))}catch(er){return err("No se pudo guardar en Firebase ("+er.message+").")}
-    ACCLIST=list;try{localStorage.setItem(ACC_CKEY,JSON.stringify(list));localStorage.setItem(ACC_SKEY,JSON.stringify({u,c}))}catch(er){}d.remove();accSet(u);res()}})}
-async function accGate(){const online=await accLoadList();if(online&&!Object.keys(ACCLIST).length){await accSetupScreen();return}
-  if(!online&&!Object.keys(ACCLIST).length){await accLoginScreen("Sin conexión: conéctate a internet para entrar la primera vez.");return}let s=null;try{s=JSON.parse(localStorage.getItem(ACC_SKEY)||"null")}catch(e){}
-  if(s&&!accCheck(s.u,s.c)){accSet(s.u);return}
-  const msg=s&&ACCLIST[s.u]&&ACCLIST[s.u].activo===false?"Tu cuenta está desactivada. Habla con Diego.":s?"Tu contraseña ha cambiado. Vuelve a entrar.":"";
-  try{localStorage.removeItem(ACC_SKEY)}catch(e){}await accLoginScreen(msg)}
-function accLogout(){confirmBox("¿Cerrar sesión en este dispositivo?","Salir",async()=>{if(accFriend())await accReport();try{localStorage.removeItem(ACC_SKEY)}catch(e){}location.reload()})}
-// Revisa permisos al volver a la app: si Diego quita temas o desactiva la cuenta, se aplica.
-async function accRecheck(){if(!ACC||!navigator.onLine)return;if(!(await accLoadList())||!Object.keys(ACCLIST).length)return;let s=null;try{s=JSON.parse(localStorage.getItem(ACC_SKEY)||"null")}catch(e){}
-  if(!s||accCheck(s.u,s.c)){location.reload();return}const before=JSON.stringify(ACC.temas);accSet(s.u);if(JSON.stringify(ACC.temas)!==before)location.reload()}
+const temaOk=()=>true;
+function cueSave(){try{if(CUE)localStorage.setItem(CUE_KEY,JSON.stringify(CUE));else localStorage.removeItem(CUE_KEY)}catch(e){}}
+function AuthErr(code){const e=new Error(code);e.code=code;return e}
+async function authPost(url,body,form){const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),12000);let r;
+  try{r=await fetch(url+"?key="+FB_KEY,{method:"POST",signal:ctl.signal,headers:{"content-type":form?"application/x-www-form-urlencoded":"application/json","X-Firebase-Locale":"es"},body:form?body:JSON.stringify(body)})}
+  catch(e){throw AuthErr("NETWORK")}finally{clearTimeout(tm)}
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw AuthErr(String((d.error&&(d.error.message||d.error))||"HTTP_"+r.status).split(/[ :]/)[0]);return d}
+const authApi=(op,body)=>authPost("https://identitytoolkit.googleapis.com/v1/accounts:"+op,body);
+async function authToken(force){if(!CUE||!CUE.rt)throw AuthErr("NO_SESSION");if(!force&&TOK.t&&TOK.exp>now()+60000)return TOK.t;
+  const d=await authPost("https://securetoken.googleapis.com/v1/token","grant_type=refresh_token&refresh_token="+encodeURIComponent(CUE.rt),true);
+  CUE.rt=d.refresh_token||CUE.rt;cueSave();TOK={t:d.id_token,exp:now()+(+d.expires_in||3600)*1000};return TOK.t}
+function authErrTxt(c){return({EMAIL_EXISTS:"Ya hay una cuenta con ese correo. Pulsa «Entrar» (sirve la misma que en Duelo de Preguntas).",
+  INVALID_LOGIN_CREDENTIALS:"Correo o contraseña incorrectos.",INVALID_PASSWORD:"Correo o contraseña incorrectos.",EMAIL_NOT_FOUND:"Correo o contraseña incorrectos.",
+  INVALID_EMAIL:"Ese correo no es válido.",MISSING_EMAIL:"Escribe tu correo.",MISSING_PASSWORD:"Escribe tu contraseña.",WEAK_PASSWORD:"La contraseña debe tener al menos 6 caracteres.",
+  USER_DISABLED:"Esta cuenta está desactivada. Habla con Diego.",TOO_MANY_ATTEMPTS_TRY_LATER:"Demasiados intentos. Espera unos minutos y vuelve a probar.",
+  OPERATION_NOT_ALLOWED:"El registro con correo no está activado en Firebase.",NETWORK:"Sin conexión. Conéctate a internet y vuelve a intentarlo."})[c]||("No se pudo completar ("+c+").")}
+async function cueFetch(path,opts){let q="";try{q="?auth="+encodeURIComponent(await authToken())}catch(e){}
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),8000);
+  return fetch(CUE_DB+path+".json"+q,Object.assign({signal:ctl.signal},opts||{})).finally(()=>clearTimeout(tm))}
+const maskEmail=e=>{const[a,b]=String(e||"").split("@");return b?a.slice(0,2)+"•••@"+b:""};
+function cueEnter(d,verified){CUE={uid:d.localId,email:String(d.email||"").toLowerCase(),nombre:d.displayName||String(d.email||"").split("@")[0],rt:d.refreshToken,v:!!verified};
+  TOK={t:d.idToken,exp:now()+(+d.expiresIn||3600)*1000};cueSave()}
+function accSet(){ACC={u:CUE.uid,email:CUE.email,admin:ADMIN_EMAILS.includes(CUE.email),nombre:CUE.nombre,temas:"todos"}}
+
+// Pantalla de acceso: entrar, crear cuenta y confirmar el correo.
+function accScreen(inicial,aviso){return new Promise(res=>{const d=document.createElement("div");d.id="accLogin";document.body.appendChild(d);
+  let email=(CUE&&CUE.email)||"",nombre="",reenvio=0;
+  let viejo=false;try{viejo=!!JSON.parse(localStorage.getItem(ACC_SKEY)||"null")}catch(e){}
+  const head='<div class="acc-logo">Mazos Oposición</div><div class="acc-sub">Oposinator · Policía Nacional</div>';
+  const show=(modo,msg,ok)=>{
+    if(modo==="verificar"){
+      d.innerHTML='<div class="acc-card">'+head+'<div class="acc-t">Confirma tu correo</div><p class="acc-txt">Te hemos enviado un correo a <b>'+esc(email)+'</b>. Abre el enlace que trae para activar tu cuenta y vuelve aquí.</p><p class="acc-txt">Si no lo ves, mira en <b>Spam</b> o <b>Promociones</b>.</p>'+
+        '<button class="fbtn" data-a="ya">Ya lo he confirmado</button><button class="tbtn" data-a="reenviar">Reenviar el correo</button><button class="acc-link" data-a="otra">Usar otra cuenta</button><p class="acc-err'+(ok?' ok':'')+'" role="alert">'+esc(msg||"")+'</p></div>';
+      d.querySelector('[data-a="ya"]').onclick=async e=>{e.target.disabled=true;try{const t=await authToken(true);const u=await authApi("lookup",{idToken:t});const x=u.users&&u.users[0];
+          if(x&&x.emailVerified){CUE.v=true;if(x.displayName)CUE.nombre=x.displayName;cueSave();d.remove();res();return}
+          show("verificar","Todavía no consta como confirmado. Pulsa el enlace del correo y vuelve a intentarlo.")}catch(er){show("verificar",authErrTxt(er.code))}};
+      d.querySelector('[data-a="reenviar"]').onclick=async()=>{if(now()-reenvio<60000)return show("verificar","Espera un minuto antes de pedir otro correo.");reenvio=now();
+        try{await authApi("sendOobCode",{requestType:"VERIFY_EMAIL",idToken:await authToken()});show("verificar","Correo reenviado.",true)}catch(er){show("verificar",authErrTxt(er.code))}};
+      d.querySelector('[data-a="otra"]').onclick=()=>{CUE=null;TOK={t:"",exp:0};cueSave();show("entrar")};return}
+    const reg=modo==="registro";
+    d.innerHTML='<form class="acc-card" autocomplete="on" novalidate>'+head+
+      '<div class="acc-tabs" role="tablist"><button type="button" role="tab" data-m="entrar" aria-selected="'+!reg+'">Entrar</button><button type="button" role="tab" data-m="registro" aria-selected="'+reg+'">Crear cuenta</button></div>'+
+      (viejo&&!msg?'<p class="acc-txt acc-aviso">Ahora se entra con tu <b>correo</b>. Si aún no tienes cuenta, pulsa «Crear cuenta»: el progreso de este dispositivo se conserva.</p>':'')+
+      (aviso&&!msg?'<p class="acc-txt acc-aviso">'+esc(aviso)+'</p>':'')+
+      (reg?'<div class="field"><label for="accN">Nombre</label><input id="accN" maxlength="18" autocomplete="nickname" autocapitalize="words" spellcheck="false" placeholder="Ej.: Pablo_27" value="'+esc(nombre)+'"><small class="acc-help">De 3 a 18 letras o números. Es el mismo nombre que verás en Duelo de Preguntas.</small></div>':'')+
+      '<div class="field"><label for="accE">Correo</label><input id="accE" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="tunombre@gmail.com" value="'+esc(email)+'"></div>'+
+      '<div class="field"><label for="accC">Contraseña</label><input id="accC" type="password" minlength="6" autocomplete="'+(reg?"new-password":"current-password")+'" placeholder="'+(reg?"Mínimo 6 caracteres":"Tu contraseña")+'">'+(reg?'<small class="acc-help">Te enviaremos un correo para confirmar la cuenta.</small>':'')+'</div>'+
+      '<button class="fbtn" type="submit">'+(reg?"Crear cuenta":"Entrar")+'</button>'+
+      (reg?'<p class="acc-txt acc-mini">Si ya tienes cuenta en Duelo de Preguntas, no hace falta otra: pulsa «Entrar» y usa la misma.</p>':'<button type="button" class="acc-link" data-a="olvido">¿Has olvidado la contraseña?</button>')+
+      '<p class="acc-err'+(ok?' ok':'')+'" role="alert">'+esc(msg||"")+'</p></form>';
+    d.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{email=$("#accE").value.trim();if($("#accN"))nombre=$("#accN").value.trim();show(b.dataset.m)});
+    const f=d.querySelector("form");
+    if(!reg)f.querySelector('[data-a="olvido"]').onclick=async()=>{email=$("#accE").value.trim();if(!email)return show("entrar","Escribe tu correo y vuelve a pulsar «¿Has olvidado la contraseña?».");
+      try{await authApi("sendOobCode",{requestType:"PASSWORD_RESET",email});show("entrar","Te hemos enviado un correo para cambiar la contraseña.",true)}catch(er){show("entrar",authErrTxt(er.code))}};
+    f.onsubmit=async e=>{e.preventDefault();email=$("#accE").value.trim().toLowerCase();const pass=$("#accC").value;const btn=f.querySelector(".fbtn");
+      if(reg){nombre=$("#accN").value.trim().replace(/\s+/g," ");if(!NOMBRE_OK.test(nombre))return show("registro","El nombre debe tener de 3 a 18 caracteres: letras, números, espacios, punto, guion o guion bajo.")}
+      if(!/^\S+@\S+\.\S+$/.test(email))return show(modo,"Escribe un correo válido.");if(pass.length<6)return show(modo,reg?"La contraseña debe tener al menos 6 caracteres.":"Escribe tu contraseña.");
+      btn.disabled=true;btn.textContent=reg?"Creando…":"Entrando…";
+      try{if(reg){const c=await authApi("signUp",{email,password:pass,returnSecureToken:true});
+          const u=await authApi("update",{idToken:c.idToken,displayName:nombre,returnSecureToken:true}).catch(()=>null);
+          cueEnter(Object.assign({},c,{displayName:nombre},u&&u.idToken?{idToken:u.idToken,refreshToken:u.refreshToken||c.refreshToken}:{}),false);
+          await authApi("sendOobCode",{requestType:"VERIFY_EMAIL",idToken:TOK.t}).catch(()=>{});show("verificar")}
+        else{const c=await authApi("signInWithPassword",{email,password:pass,returnSecureToken:true});
+          const u=await authApi("lookup",{idToken:c.idToken});const x=(u.users&&u.users[0])||{};
+          cueEnter(Object.assign({},c,{displayName:x.displayName||c.displayName}),x.emailVerified);
+          if(CUE.v){d.remove();res()}else{await authApi("sendOobCode",{requestType:"VERIFY_EMAIL",idToken:TOK.t}).catch(()=>{});reenvio=now();show("verificar","Te hemos vuelto a enviar el correo de confirmación.",true)}}}
+      catch(er){show(modo,authErrTxt(er.code))}}};
+  show(inicial||"entrar")})}
+function accBloqueada(){return new Promise(()=>{const d=document.createElement("div");d.id="accLogin";
+  d.innerHTML='<div class="acc-card"><div class="acc-logo">Mazos Oposición</div><div class="acc-t">Cuenta desactivada</div><p class="acc-txt">Tu cuenta ('+esc(CUE.email)+') está desactivada. Habla con Diego.</p><button class="tbtn" id="accOut">Cerrar sesión</button></div>';
+  document.body.appendChild(d);$("#accOut").onclick=()=>{CUE=null;cueSave();location.reload()}})}
+// Perfil en Firebase: lo crea al entrar y comprueba si Diego ha desactivado la cuenta. Sin conexión, deja entrar.
+async function cuePerfil(){try{const r=await cueFetch("/perfiles/"+CUE.uid);if(!r.ok)return true;const p=await r.json()||{};
+    if(p.activo===false)return false;
+    const nx={nombre:CUE.nombre,correo:maskEmail(CUE.email),ultimo:now()};if(!p.alta)nx.alta=now();
+    cueFetch("/perfiles/"+CUE.uid,{method:"PATCH",body:JSON.stringify(nx)}).catch(()=>{});return true}catch(e){return true}}
+// El progreso que un amigo tenía con el usuario antiguo (usuario01…) pasa a su cuenta de correo.
+async function accMigrar(){let s=null;try{s=JSON.parse(localStorage.getItem(ACC_SKEY)||"null")}catch(e){}if(!s||!s.u)return;
+  if(accFriend()&&s.u!==ACC.u){idb=await idbOpen();const old=await idbGet("state:"+s.u);if(old&&!(await idbGet("state:"+ACC.u)))await idbSet("state:"+ACC.u,old);
+    try{const ls=localStorage.getItem(LKEY+"."+s.u);if(ls&&!localStorage.getItem(LKEY+"."+ACC.u))localStorage.setItem(LKEY+"."+ACC.u,ls);
+      const td=localStorage.getItem("todo."+s.u);if(td&&!localStorage.getItem("todo."+ACC.u))localStorage.setItem("todo."+ACC.u,td)}catch(e){}}
+  try{localStorage.removeItem(ACC_SKEY);localStorage.removeItem("mazosOposicion.accesosCache")}catch(e){}}
+async function accGate(){try{CUE=JSON.parse(localStorage.getItem(CUE_KEY)||"null")}catch(e){}
+  if(!CUE||!CUE.uid||!CUE.rt)CUE=null;
+  if(!CUE||!CUE.v)await accScreen(CUE?"verificar":"entrar");
+  accSet();if(!(await cuePerfil()))await accBloqueada();await accMigrar()}
+function accLogout(){confirmBox("¿Cerrar sesión en este dispositivo?","Salir",async()=>{if(accFriend())await accReport();CUE=null;cueSave();location.reload()})}
+// Al volver a la app: si la cuenta se ha borrado o desactivado, sale.
+let recheckT=0;
+async function accRecheck(){if(!ACC||!navigator.onLine||now()-recheckT<10*60000)return;recheckT=now();
+  try{await authToken(true)}catch(e){if(/USER_DISABLED|USER_NOT_FOUND|TOKEN_EXPIRED|INVALID_REFRESH_TOKEN/.test(e.code)){CUE=null;cueSave();location.reload()}return}
+  if(!(await cuePerfil()))location.reload()}
 
 /* actividad: cada amigo envía un resumen de lo que hace (por dispositivo y día) */
 function accDev(){let d="";try{d=localStorage.getItem(ACC_DKEY)||""}catch(e){}if(!d){d=uid();try{localStorage.setItem(ACC_DKEY,d)}catch(e){}}return d}
@@ -1701,7 +1763,7 @@ async function accReport(){clearTimeout(actT);if(!accFriend()||!navigator.onLine
   for(let k=0;k<14;k++){const ds=dayStr(t-k),es=LOG[ds]||[];if(!es.length&&k)continue;const temas={};let ok=0,ms=0;
     es.forEach(x=>{const n=DECKS[x.d]?.num??x.d;const r=temas[n]||(temas[n]=[0,0]);r[0]++;if(x.e>1){r[1]++;ok++}ms+=x.ms||0});
     body["dias/"+ds+"/"+dev]={n:es.length,ok,min:Math.round(ms/60000),ent:k===0?accEntradasHoy():undefined,temas};}
-  try{await accFetch("/actividad/"+ACC.u,{method:"PATCH",body:JSON.stringify(body)})}catch(e){}}
+  try{await cueFetch("/actividad/"+ACC.u,{method:"PATCH",body:JSON.stringify(body)})}catch(e){}}
 document.addEventListener("visibilitychange",()=>{if(!ACC)return;
   if(document.hidden){lastHidden=now();accReport()}
   else{if(accFriend()&&lastHidden&&now()-lastHidden>30*60000){accEntrada();accActSoon()}accRecheck()}});
@@ -1719,8 +1781,7 @@ function renderTodo(){const l=todoLoad(),box=$("#vTodo");
   box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{l.splice(b.dataset.del,1);todoSave(l);renderTodo()})}
 
 /* ---------- pestaña Usuarios (solo Diego) ---------- */
-const UV={act:{},open:null,msg:""};
-function accTemaList(){return deckList().filter(d=>d.num!=null).map(d=>({n:d.num,name:d.name}))}
+const UV={act:{},perf:{},open:null};
 function accStats(a){const dias=(a&&a.dias)||{},t=dayNum(now()),per={};
   for(const [ds,devs] of Object.entries(dias)){const r={n:0,ok:0,min:0,ent:0,temas:{}};
     for(const v of Object.values(devs||{})){r.n+=v.n||0;r.ok+=v.ok||0;r.min+=v.min||0;r.ent+=v.ent||0;
@@ -1733,56 +1794,31 @@ function accStats(a){const dias=(a&&a.dias)||{},t=dayNum(now()),per={};
 function agoTxt(ts){if(!ts)return"nunca";const m=Math.round((now()-ts)/60000);if(m<2)return"ahora mismo";if(m<60)return"hace "+m+" min";const h=Math.round(m/60);if(h<24)return"hace "+h+" h";return relDay(dayNum(ts))}
 async function renderUsers(){const box=$("#vUsers");if(!ACC||!ACC.admin){go("decks");return}
   box.innerHTML='<div class="loading">Cargando usuarios…</div>';
-  const okList=await accLoadList();let act={};try{const r=await accFetch("/actividad");if(r.ok)act=await r.json()||{}}catch(e){}UV.act=act;
-  if(view!=="users")return;
-  const temasAll=accTemaList(),users=Object.entries(ACCLIST||{}).sort((a,b)=>(b[1].admin?1:0)-(a[1].admin?1:0)||a[0].localeCompare(b[0]));
-  let h='<div class="pad"><p class="note">'+(okList?"Los cambios llegan a cada usuario la próxima vez que abra o vuelva a la app.":"Sin conexión con Firebase: no se pueden guardar cambios ahora.")+'</p></div>';
-  h+='<div class="utable"><table><thead><tr><th>Usuario</th><th>Último acceso</th><th>Hoy</th><th>7 días</th><th>Racha</th><th>Disp.</th></tr></thead><tbody>';
-  users.forEach(([u,x])=>{const s=accStats(act[u]);h+='<tr data-uopen="'+esc(u)+'"><td><b>'+esc(x.nombre||u)+'</b><small>'+esc(u)+(x.admin?" · admin":x.activo===false?" · desactivado":"")+'</small></td><td>'+(x.admin?"—":esc(agoTxt(s.ultimo)))+'</td><td>'+(x.admin?"—":s.hoy.n)+'</td><td>'+(x.admin?"—":s.s7.n)+'</td><td>'+(x.admin?"—":s.racha)+'</td><td'+(s.devs.length>2?' class="uwarn"':'')+'>'+(x.admin?"—":s.devs.length)+'</td></tr>'});
-  h+='</tbody></table></div><div class="pad rowbtns"><button class="fbtn" id="uAdd">Añadir usuario</button></div><div id="uDetail"></div>';
-  box.innerHTML=h;
-  box.querySelectorAll("[data-uopen]").forEach(tr=>tr.onclick=()=>{UV.open=tr.dataset.uopen;renderUserDetail(temasAll);$("#uDetail").scrollIntoView({behavior:"smooth"})});
-  $("#uAdd").onclick=()=>accAddUser();
-  if(UV.open&&ACCLIST[UV.open])renderUserDetail(temasAll)}
-function renderUserDetail(temasAll){const u=UV.open,x=ACCLIST[u];if(!x)return;const s=accStats(UV.act[u]),tem=x.admin?"todos":accTemas(x),t=dayNum(now());
-  let h='<div class="pad udet"><div class="sec-t">'+esc(x.nombre||u)+' · '+esc(u)+'</div>';
-  h+='<div class="field"><label for="uNom">Nombre</label><input id="uNom" value="'+esc(x.nombre||"")+'"></div>';
-  h+='<div class="field"><label for="uClave">Contraseña</label><input id="uClave" value="'+esc(x.clave||"")+'" autocomplete="off" spellcheck="false"></div>';
-  if(!x.admin){h+='<label class="switchrow"><span>Cuenta activa<small>Si la desactivas, sale de la app al volver a abrirla.</small></span><input type="checkbox" id="uAct"'+(x.activo===false?"":" checked")+'></label>';
-    h+='<div class="sec-t">Temas a los que tiene acceso</div><div class="rowbtns"><button class="tbtn" id="uAll">Todos</button><button class="tbtn" id="uNone">Ninguno</button></div><div class="utemas">'+
-      temasAll.map(T=>'<label><input type="checkbox" data-tema="'+T.n+'"'+(tem==="todos"||tem.includes(T.n)?" checked":"")+'> <b>'+T.n+'</b> '+esc(T.name)+'</label>').join("")+'</div>'}
-  h+='<div class="rowbtns"><button class="fbtn" id="uSave">Guardar cambios</button>'+(x.admin?"":'<button class="tbtn danger" id="uDel">Eliminar</button>')+'</div><p class="note" id="uMsg"></p>';
-  if(!x.admin){
-    h+='<div class="sec-t">Actividad</div><div class="ukpi"><div><b>'+s.hoy.n+'</b><span>hoy</span></div><div><b>'+s.s7.n+'</b><span>7 días</span></div><div><b>'+s.s30.n+'</b><span>30 días</span></div><div><b>'+pct(s.s30.ok,s.s30.n)+'%</b><span>acierto 30 d</span></div><div><b>'+s.racha+'</b><span>racha</span></div><div><b>'+s.s7.min+'</b><span>min 7 días</span></div></div>';
-    const maxN=Math.max(1,...Array.from({length:7},(_,i)=>(s.per[dayStr(t-i)]||{}).n||0));
-    h+='<div class="udias">'+Array.from({length:7},(_,i)=>{const ds=dayStr(t-i),r=s.per[ds]||{n:0,ok:0,min:0,ent:0};return'<div class="udia"><span class="ud-d">'+cap(relDay(t-i))+'</span><span class="ud-bar"><i style="width:'+Math.round(100*r.n/maxN)+'%"></i></span><span class="ud-n">'+r.n+(r.n?' · '+pct(r.ok,r.n)+'% · '+r.min+' min':'')+(r.ent?' · '+r.ent+(r.ent===1?' entrada':' entradas'):'')+'</span></div>'}).join("")+'</div>';
-    const tr=Object.entries(s.temas).sort((a,b)=>b[1][0]-a[1][0]);
-    h+='<div class="sec-t">Temas (últimos 30 días)</div>'+(tr.length?'<div class="utable"><table><thead><tr><th>Tema</th><th>Respondidas</th><th>Acierto</th></tr></thead><tbody>'+tr.map(([k,v])=>{const T=temasAll.find(z=>String(z.n)===String(k));return'<tr><td>'+esc(T?T.n+". "+T.name:k)+'</td><td>'+v[0]+'</td><td'+(pct(v[1],v[0])<60?' class="uwarn"':'')+'>'+pct(v[1],v[0])+'%</td></tr>'}).join("")+'</tbody></table></div>':'<p class="note">Todavía no ha respondido preguntas.</p>');
-    h+='<div class="sec-t">Dispositivos</div>'+(s.devs.length?s.devs.map(d=>'<p class="note">'+esc(d.tipo||"?")+' · '+esc(agoTxt(d.ultimo))+'</p>').join(""):'<p class="note">Aún no ha entrado.</p>')+(s.devs.length>2?'<p class="note uwarn">Más de 2 dispositivos: puede que esté compartiendo la contraseña.</p>':'')}
+  let perf={},act={},ok=true;
+  try{const[r1,r2]=await Promise.all([cueFetch("/perfiles"),cueFetch("/actividad")]);if(!r1.ok)throw new Error(await fbErr(r1));perf=await r1.json()||{};if(r2.ok)act=await r2.json()||{}}catch(e){ok=false}
+  UV.perf=perf;UV.act=act;if(view!=="users")return;
+  const users=Object.entries(perf).filter(([u])=>u!==ACC.u).sort((a,b)=>((b[1].ultimo||0)-(a[1].ultimo||0)));
+  let h='<div class="pad"><p class="note">'+(ok?"Cada persona se crea su cuenta con su correo desde la pantalla de entrada (sirve la misma de Duelo de Preguntas). Al confirmar el correo tiene acceso a todos los temas. "+users.length+(users.length===1?" cuenta.":" cuentas."):"Sin conexión con Firebase: no se pueden cargar las cuentas ahora.")+'</p></div>';
+  if(users.length){h+='<div class="utable"><table><thead><tr><th>Usuario</th><th>Último acceso</th><th>Hoy</th><th>7 días</th><th>Racha</th><th>Disp.</th></tr></thead><tbody>';
+    users.forEach(([u,x])=>{const s=accStats(act[u]);h+='<tr data-uopen="'+esc(u)+'"><td><b>'+esc(x.nombre||"Sin nombre")+'</b><small>'+esc(x.correo||"")+(x.activo===false?" · desactivada":"")+'</small></td><td>'+esc(agoTxt(s.ultimo||x.ultimo))+'</td><td>'+s.hoy.n+'</td><td>'+s.s7.n+'</td><td>'+s.racha+'</td><td'+(s.devs.length>2?' class="uwarn"':'')+'>'+s.devs.length+'</td></tr>'});
+    h+='</tbody></table></div>'}
+  h+='<div id="uDetail"></div>';box.innerHTML=h;
+  box.querySelectorAll("[data-uopen]").forEach(tr=>tr.onclick=()=>{UV.open=tr.dataset.uopen;renderUserDetail();$("#uDetail").scrollIntoView({behavior:"smooth"})});
+  if(UV.open&&perf[UV.open])renderUserDetail()}
+function renderUserDetail(){const u=UV.open,x=UV.perf[u];if(!x)return;const s=accStats(UV.act[u]),t=dayNum(now()),temasAll=deckList().filter(d=>d.num!=null).map(d=>({n:d.num,name:d.name}));
+  let h='<div class="pad udet"><div class="sec-t">'+esc(x.nombre||"Sin nombre")+' · '+esc(x.correo||"")+'</div><p class="note">Alta: '+(x.alta?esc(relDay(dayNum(x.alta))):"—")+'</p>';
+  h+='<label class="switchrow"><span>Cuenta activa<small>Si la desactivas, no podrá entrar en Mazos (se aplica al volver a abrir la app).</small></span><input type="checkbox" id="uAct"'+(x.activo===false?"":" checked")+'></label>';
+  h+='<div class="rowbtns"><button class="fbtn" id="uSave">Guardar</button></div><p class="note" id="uMsg"></p>';
+  h+='<div class="sec-t">Actividad</div><div class="ukpi"><div><b>'+s.hoy.n+'</b><span>hoy</span></div><div><b>'+s.s7.n+'</b><span>7 días</span></div><div><b>'+s.s30.n+'</b><span>30 días</span></div><div><b>'+pct(s.s30.ok,s.s30.n)+'%</b><span>acierto 30 d</span></div><div><b>'+s.racha+'</b><span>racha</span></div><div><b>'+s.s7.min+'</b><span>min 7 días</span></div></div>';
+  const maxN=Math.max(1,...Array.from({length:7},(_,i)=>(s.per[dayStr(t-i)]||{}).n||0));
+  h+='<div class="udias">'+Array.from({length:7},(_,i)=>{const ds=dayStr(t-i),r=s.per[ds]||{n:0,ok:0,min:0,ent:0};return'<div class="udia"><span class="ud-d">'+cap(relDay(t-i))+'</span><span class="ud-bar"><i style="width:'+Math.round(100*r.n/maxN)+'%"></i></span><span class="ud-n">'+r.n+(r.n?' · '+pct(r.ok,r.n)+'% · '+r.min+' min':'')+(r.ent?' · '+r.ent+(r.ent===1?' entrada':' entradas'):'')+'</span></div>'}).join("")+'</div>';
+  const tr=Object.entries(s.temas).sort((a,b)=>b[1][0]-a[1][0]);
+  h+='<div class="sec-t">Temas (últimos 30 días)</div>'+(tr.length?'<div class="utable"><table><thead><tr><th>Tema</th><th>Respondidas</th><th>Acierto</th></tr></thead><tbody>'+tr.map(([k,v])=>{const T=temasAll.find(z=>String(z.n)===String(k));return'<tr><td>'+esc(T?T.n+". "+T.name:k)+'</td><td>'+v[0]+'</td><td'+(pct(v[1],v[0])<60?' class="uwarn"':'')+'>'+pct(v[1],v[0])+'%</td></tr>'}).join("")+'</tbody></table></div>':'<p class="note">Todavía no ha respondido preguntas.</p>');
+  h+='<div class="sec-t">Dispositivos</div>'+(s.devs.length?s.devs.map(d=>'<p class="note">'+esc(d.tipo||"?")+' · '+esc(agoTxt(d.ultimo))+'</p>').join(""):'<p class="note">Aún no ha estudiado.</p>')+(s.devs.length>2?'<p class="note uwarn">Más de 2 dispositivos: puede que esté compartiendo la cuenta.</p>':'');
   h+='</div>';$("#uDetail").innerHTML=h;
-  const setAll=v=>document.querySelectorAll("#uDetail [data-tema]").forEach(c=>c.checked=v);
-  if($("#uAll")){$("#uAll").onclick=()=>setAll(true);$("#uNone").onclick=()=>setAll(false)}
-  $("#uSave").onclick=async()=>{const nx=Object.assign({},x,{nombre:$("#uNom").value.trim()||u,clave:$("#uClave").value.trim()});
-    if(!nx.clave){$("#uMsg").textContent="La contraseña no puede quedar vacía.";return}
-    if(!x.admin){nx.activo=$("#uAct").checked;nx.temas=[...document.querySelectorAll("#uDetail [data-tema]:checked")].map(c=>+c.dataset.tema);if(!nx.temas.length)nx.temas=[]}
-    $("#uMsg").textContent="Guardando…";
-    try{const r=await accFetch("/accesos/"+u,{method:"PUT",body:JSON.stringify(nx)});if(!r.ok)throw new Error(await fbErr(r));
-      ACCLIST[u]=nx;try{localStorage.setItem(ACC_CKEY,JSON.stringify(ACCLIST))}catch(e){}
-      if(u===ACC.u){try{localStorage.setItem(ACC_SKEY,JSON.stringify({u,c:nx.clave}))}catch(e){}}
-      toast("Guardado");renderUsers()}catch(e){$("#uMsg").textContent="No se pudo guardar ("+e.message+")."}};
-  if($("#uDel"))$("#uDel").onclick=()=>confirmBox("¿Eliminar a "+(x.nombre||u)+"? Perderá el acceso y se borrará su actividad.","Eliminar",async()=>{
-    try{const r=await accFetch("/accesos/"+u,{method:"DELETE"});if(!r.ok)throw new Error(await fbErr(r));await accFetch("/actividad/"+u,{method:"DELETE"}).catch(()=>{});
-      delete ACCLIST[u];UV.open=null;toast("Usuario eliminado");renderUsers()}catch(e){toast("No se pudo eliminar ("+e.message+")")}})}
-function accAddUser(){let i=1;while(ACCLIST["usuario"+String(i).padStart(2,"0")])i++;const sug="usuario"+String(i).padStart(2,"0");
-  const pw=accPw();
-  const s=sheet('<h4>Nuevo usuario</h4><div class="field"><label for="nU">Usuario</label><input id="nU" value="'+sug+'" autocapitalize="none"></div><div class="field"><label for="nC">Contraseña</label><input id="nC" value="'+pw+'"></div><div class="field"><label for="nN">Nombre (para ti)</label><input id="nN" placeholder="Ej.: Pablo"></div><p class="note" id="nMsg">Después eliges sus temas en su ficha.</p><div class="rowbtns"><button class="tbtn" data-x>Cancelar</button><button class="fbtn" data-ok>Crear</button></div>');
-  s.querySelector("[data-x]").onclick=closeSheet;
-  s.querySelector("[data-ok]").onclick=async()=>{const u=$("#nU").value.trim().toLowerCase(),c=$("#nC").value.trim(),n=$("#nN").value.trim();
-    if(!/^[a-z0-9._-]{3,30}$/.test(u)){$("#nMsg").textContent="Usuario de 3 a 30 letras o números, sin espacios.";return}
-    if(ACCLIST[u]){$("#nMsg").textContent="Ese usuario ya existe.";return}if(c.length<4){$("#nMsg").textContent="Contraseña de al menos 4 caracteres.";return}
-    const nx={nombre:n||u,clave:c,activo:true,temas:[]};
-    try{const r=await accFetch("/accesos/"+u,{method:"PUT",body:JSON.stringify(nx)});if(!r.ok)throw new Error(await fbErr(r));ACCLIST[u]=nx;UV.open=u;closeSheet();toast("Usuario creado");renderUsers()}
-    catch(e){$("#nMsg").textContent="No se pudo crear ("+e.message+")."}}}
+  $("#uSave").onclick=async()=>{const activo=$("#uAct").checked;$("#uMsg").textContent="Guardando…";
+    try{const r=await cueFetch("/perfiles/"+u,{method:"PATCH",body:JSON.stringify({activo})});if(!r.ok)throw new Error(await fbErr(r));
+      x.activo=activo;toast("Guardado");renderUsers()}catch(e){$("#uMsg").textContent="No se pudo guardar ("+e.message+")."}}}
 
 // Ajustes: los amigos no ven la sincronización con tu Firebase ni los avisos
 {const rsOrig=renderSettings;renderSettings=function(){rsOrig();if(!accFriend())return;let skip=false;
