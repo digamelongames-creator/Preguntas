@@ -6,11 +6,12 @@ const PUB = process.env.VAPID_PUBLIC, PRIV = process.env.VAPID_PRIVATE;
 const APP_URL = process.env.APP_URL || "./";
 if (!FIREBASE_URL || !PUB || !PRIV) { console.log("Avisos sin configurar: falta el secreto VAPID_PRIVATE. No se envía nada."); process.exit(0); }
 const BASE = FIREBASE_URL + "/mazosOposicion";
+const AUTH = process.env.FIREBASE_SECRET ? "?auth=" + encodeURIComponent(process.env.FIREBASE_SECRET) : "";
 webpush.setVapidDetails("mailto:avisos@mazos-oposicion.app", PUB, PRIV);
 
-const get = async p => { const r = await fetch(BASE + p + ".json"); if (!r.ok) throw new Error(p + " HTTP " + r.status); return r.json(); };
-const put = (p, v) => fetch(BASE + p + ".json", { method: "PUT", body: JSON.stringify(v) });
-const del = p => fetch(BASE + p + ".json", { method: "DELETE" });
+const get = async p => { const r = await fetch(BASE + p + ".json" + AUTH); if (!r.ok) throw new Error(p + " HTTP " + r.status); return r.json(); };
+const put = (p, v) => fetch(BASE + p + ".json" + AUTH, { method: "PUT", body: JSON.stringify(v) });
+const del = p => fetch(BASE + p + ".json" + AUTH, { method: "DELETE" });
 
 function madrid(d = new Date()) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" })

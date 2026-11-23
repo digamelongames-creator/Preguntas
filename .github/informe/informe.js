@@ -1,6 +1,6 @@
 // Informe de estudio de todos los usuarios de Mazos Oposición.
 // Lo ejecuta GitHub Actions (.github/workflows/informe.yml) y guarda el resultado en la rama «informe».
-// No copia contraseñas ni nombres: los usuarios aparecen solo por su identificador (usuario01…).
+// No copia contraseñas ni correos: los usuarios aparecen por el nombre que eligieron al registrarse.
 "use strict";
 const fs = require("fs");
 
@@ -9,6 +9,7 @@ const AUTH = process.env.FIREBASE_SECRET ? "?auth=" + encodeURIComponent(process
 const OUT = process.argv[2] || "salida";
 const HTML = process.argv[3] || "index.html";
 
+const ROOT = (process.env.FIREBASE_URL || "https://curva-olvido-f89d1-default-rtdb.europe-west1.firebasedatabase.app").replace(/\/+$/, "");
 const get = async p => { const r = await fetch(FB + p + ".json" + AUTH); if (!r.ok) throw new Error(p + " HTTP " + r.status); return r.json(); };
 const parseDoc = x => { try { return x && x.json ? JSON.parse(x.json) : null; } catch (e) { return null; } };
 
@@ -26,9 +27,11 @@ const P = v => v == null ? "—" : v + " %";
 const hora = ts => ts ? new Date(ts).toLocaleString("es-ES", { timeZone: "Europe/Madrid", dateStyle: "short", timeStyle: "short" }) : "nunca";
 
 // Banco de preguntas: lo leo del propio index.html (mismo origen que la app).
-function banco() {
+// Las preguntas ya no están en index.html: se leen del banco de Firebase (oposinator/banco).
+async function banco() {
   const h = fs.readFileSync(HTML, "utf8");
-  const tag = id => { const m = h.match(new RegExp('<script id="' + id + '" type="application/json">([\\s\\S]*?)</script>')); return m ? JSON.parse(m[1]) : []; };
+  const r = await fetch(ROOT + "/oposinator/banco/preguntas.json" + AUTH); const j = r.ok ? await r.json() : null; const BK = j ? JSON.parse(j) : { q: [], e: [] };
+  const tag = id => (id === "qdata" ? BK.q : BK.e) || [];
   const nombres = {}; const m = h.match(/const NAMES=\{([\s\S]*?)\};/);
   if (m) for (const x of m[1].matchAll(/(\d+):"([^"]*)"/g)) nombres[x[1]] = x[2];
   const total = {}, texto = {};
@@ -133,13 +136,14 @@ function markdown(R) {
 }
 
 (async () => {
-  const B = banco(), hoy = dayNum(Date.now());
-  const [srs, revlog, accesos, actividad] = await Promise.all([get("/srs"), get("/revlog"), get("/amigos/accesos").catch(() => null), get("/amigos/actividad").catch(() => null)]);
+  const B = await banco(), hoy = dayNum(Date.now());
+  const [srs, revlog, accesos, actividad] = await Promise.all([get("/srs"), get("/revlog"), get("/cuentas/perfiles").catch(() => null), get("/cuentas/actividad").catch(() => null)]);
+  const bloq = await get("/cuentas/bloqueados").catch(() => null) || {};
   const R = { generado: hora(Date.now()), _hoy: hoy, admin: null, amigos: [] };
   R.admin = informeAdmin(B, srs, revlog, hoy);
-  for (const [u, acc] of Object.entries(accesos || {}).sort((a, b) => a[0].localeCompare(b[0]))) {
-    if (!acc || acc.admin) continue;
-    R.amigos.push(informeAmigo(u, acc, (actividad || {})[u], hoy, B));
+  for (const [u, p] of Object.entries(accesos || {}).sort((a, b) => String(a[1].nombre).localeCompare(String(b[1].nombre)))) {
+    if (!p) continue;
+    R.amigos.push(informeAmigo(p.nombre || u.slice(0, 6), { activo: bloq[u] !== true, temas: "todos" }, (actividad || {})[u], hoy, B));
   }
   fs.mkdirSync(OUT, { recursive: true });
   const md = markdown(R); delete R._hoy;

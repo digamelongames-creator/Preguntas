@@ -1,0 +1,46 @@
+{
+  "rules": {
+    "oposinator": {
+      "banco": {
+        ".read": "auth != null && auth.token.email_verified == true && !root.child('mazosOposicion/cuentas/bloqueados/' + auth.uid).exists()",
+        ".write": "auth != null && auth.token.email == 'diegojdevesa@gmail.com' && auth.token.email_verified == true"
+      }
+    },
+    "mazosOposicion": {
+      ".read": "auth != null && auth.token.email == 'diegojdevesa@gmail.com' && auth.token.email_verified == true",
+      ".write": "auth != null && auth.token.email == 'diegojdevesa@gmail.com' && auth.token.email_verified == true",
+      "cuentas": {
+        "perfiles": {
+          "$uid": {
+            ".read": "auth != null && auth.uid == $uid",
+            ".write": "auth != null && auth.uid == $uid && auth.token.email_verified == true"
+          }
+        },
+        "actividad": {
+          "$uid": {
+            ".write": "auth != null && auth.uid == $uid && auth.token.email_verified == true"
+          }
+        },
+        "bloqueados": {
+          "$uid": {
+            ".read": "auth != null && auth.uid == $uid"
+          }
+        }
+      },
+      "traslados": {
+        "$codigo": {
+          ".read": true,
+          ".write": "!data.exists() || !newData.exists()"
+        }
+      }
+    },
+    "duelo": {
+      ".read": "auth != null && auth.token.email_verified == true",
+      ".write": "auth != null && auth.token.email_verified == true"
+    },
+    "$otros": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
