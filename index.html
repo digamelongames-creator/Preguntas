@@ -1608,11 +1608,6 @@ function renderSettings(){
    '<div class="field"><label for="pushHours">Horas de aviso (separadas por comas)</label><input id="pushHours" inputmode="numeric" value="'+esc((SYNC.hours||[]).join(", "))+'"></div>'+
    '<div class="rowbtns"><button class="tbtn" id="pushOff" hidden>Desactivar en este móvil</button><button class="fbtn" id="pushOn">Activar avisos</button></div>'+
    '<p class="note" id="pushMsg"></p>'+
-   '<div class="sec-t">Refuerzos de Claude</div>'+
-   '<p class="note">Para que Claude prepare refuerzos de las preguntas que fallas 3 o más veces, pega una clave de la API de Anthropic (console.anthropic.com). Se guarda solo en este dispositivo y se usa únicamente para hablar con Claude.</p>'+
-   '<div class="field"><label for="apiKey">Clave de la API</label><input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…" value="'+esc(SYNC.key)+'"></div>'+
-   '<div class="field"><label for="apiModel">Modelo</label><input id="apiModel" value="'+esc(SYNC.model||"claude-sonnet-5-5")+'"></div>'+
-   '<div class="rowbtns"><button class="fbtn" id="keySave">Guardar clave</button></div>'+
    '<div class="sec-t">Datos</div>'+
    '<p class="note">Banco incluido: '+BANK.length+' preguntas tipo test de '+deckList().filter(d=>!d.custom).length+' temas.</p>'+
    '<div class="rowbtns"><button class="tbtn danger" id="wipe">Reiniciar todo el progreso</button></div>';
@@ -1637,7 +1632,6 @@ function renderSettings(){
     try{await enablePush();$("#pushOn").textContent="Guardar horas";$("#pushOff").hidden=false;$("#pushMsg").textContent="Listo: recibirás avisos a las "+h.map(x=>x+":00").join(", ")+" (pueden llegar con unos minutos de retraso)."}
     catch(e){$("#pushMsg").textContent=e.message}};
   $("#pushOff").onclick=async()=>{await disablePush();$("#pushOff").hidden=true;$("#pushOn").textContent="Activar avisos";$("#pushMsg").textContent="Avisos desactivados en este dispositivo."};
-  $("#keySave").onclick=()=>{SYNC.key=$("#apiKey").value.trim();SYNC.model=$("#apiModel").value.trim()||"claude-sonnet-5-5";saveSyncCfg();refOff=false;toast(SYNC.key?"Clave guardada":"Refuerzos desactivados")};
   $("#wipe").onclick=()=>confirmBox("¿Borrar todo el historial y empezar de cero? Las preguntas se mantienen.","Reiniciar",()=>{
     Object.keys(ST).forEach(did=>{ST[did]={};saveSrs(did)});Object.keys(LOG).forEach(ds=>{LOG[ds]=[];saveLog(ds)});go("decks");toast("Progreso reiniciado")})}
 
