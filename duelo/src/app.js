@@ -15,8 +15,9 @@ const $app = document.getElementById('app');
 // VERSION: número de compilación de GitHub. NATIVO: súbelo solo si cambia algo de Android (plugins, icono, permisos):
 // así las apps con una APK antigua avisan de descargar la nueva en vez de recibir un contenido incompatible.
 const VERSION = __VERSION__, NATIVO = 1;
-const URL_VERSION = 'https://github.com/digamelongames-creator/Preguntas/releases/download/duelo-web/version.json';
-const URL_APK = 'https://github.com/digamelongames-creator/Preguntas/releases/download/duelo-apk/DueloDePreguntas.apk';
+// Descargas en oposinator.com (antes en GitHub Releases, que deja de servir al pasar el repositorio a privado).
+const URL_VERSION = 'https://www.oposinator.com/duelo/version.json';
+const URL_APK = 'https://www.oposinator.com/duelo/DueloDePreguntas.apk';
 const NOMBRE_OK = /^[\p{L}\p{N} _.-]{3,18}$/u;
 let hayApkNueva = false;
 const DN = { 1: 'Fácil', 2: 'Media', 3: 'Difícil' };
