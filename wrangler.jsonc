@@ -1,6 +1,6 @@
 // Solo se usa si Cloudflare publica la web como Worker en lugar de como Pages.
 {
-  "name": "oposinator",
+  "name": "preguntas",
   "compatibility_date": "2026-11-01",
   "assets": { "directory": "./public" }
 }
